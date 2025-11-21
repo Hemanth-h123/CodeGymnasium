@@ -3,8 +3,8 @@ services:
     name: codegymnasium-frontend
     env: node
     rootDir: frontend
-    buildCommand: npm.cmd install && npm.cmd run build
-    startCommand: npm.cmd run start
+    buildCommand: npm install 
+    startCommand: npm run build
     autoDeploy: true
     envVars:
       - key: NODE_ENV
