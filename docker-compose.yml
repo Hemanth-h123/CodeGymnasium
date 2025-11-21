@@ -1,0 +1,297 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database - Main Application Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: codegymnasium-postgres
+    environment:
+      POSTGRES_USER: codegym_user
+      POSTGRES_PASSWORD: codegym_pass
+      POSTGRES_DB: codegymnasium
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - codegymnasium-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codegym_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Caching & Session Management
+  redis:
+    image: redis:7-alpine
+    container_name: codegymnasium-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - codegymnasium-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MongoDB - Discussion & Activity Data
+  mongodb:
+    image: mongo:7
+    container_name: codegymnasium-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: codegym_user
+      MONGO_INITDB_ROOT_PASSWORD: codegym_pass
+      MONGO_INITDB_DATABASE: codegymnasium_discussions
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - codegymnasium-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ - Message Queue for Code Execution
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: codegymnasium-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: codegym_user
+      RABBITMQ_DEFAULT_PASS: codegym_pass
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - codegymnasium-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: codegymnasium-api-gateway
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3002
+      COURSE_SERVICE_URL: http://course-service:3003
+      PROBLEM_SERVICE_URL: http://problem-service:3004
+      CODE_EXECUTION_SERVICE_URL: http://code-execution-service:3005
+      DISCUSSION_SERVICE_URL: http://discussion-service:3006
+      CHALLENGE_SERVICE_URL: http://challenge-service:3007
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/api-gateway:/app
+      - /app/node_modules
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend/services/auth-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-auth-service
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://codegym_user:codegym_pass@postgres:5432/codegymnasium
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-change-in-production
+      JWT_REFRESH_SECRET: your-jwt-refresh-secret-key-change-in-production
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/auth-service:/app
+      - /app/node_modules
+
+  # User Service
+  user-service:
+    build:
+      context: ./backend/services/user-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-user-service
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://codegym_user:codegym_pass@postgres:5432/codegymnasium
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/user-service:/app
+      - /app/node_modules
+
+  # Course Service
+  course-service:
+    build:
+      context: ./backend/services/course-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-course-service
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://codegym_user:codegym_pass@postgres:5432/codegymnasium
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/course-service:/app
+      - /app/node_modules
+
+  # Problem Service
+  problem-service:
+    build:
+      context: ./backend/services/problem-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-problem-service
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgresql://codegym_user:codegym_pass@postgres:5432/codegymnasium
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3004:3004"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/problem-service:/app
+      - /app/node_modules
+
+  # Code Execution Service
+  code-execution-service:
+    build:
+      context: ./backend/services/code-execution-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-code-execution-service
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgresql://codegym_user:codegym_pass@postgres:5432/codegymnasium
+      RABBITMQ_URL: amqp://codegym_user:codegym_pass@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3005:3005"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/code-execution-service:/app
+      - /app/node_modules
+      - /var/run/docker.sock:/var/run/docker.sock
+    privileged: true
+
+  # Discussion Service
+  discussion-service:
+    build:
+      context: ./backend/services/discussion-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-discussion-service
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      MONGODB_URL: mongodb://codegym_user:codegym_pass@mongodb:27017/codegymnasium_discussions?authSource=admin
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3006:3006"
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/discussion-service:/app
+      - /app/node_modules
+
+  # Challenge Service
+  challenge-service:
+    build:
+      context: ./backend/services/challenge-service
+      dockerfile: Dockerfile
+    container_name: codegymnasium-challenge-service
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      DATABASE_URL: postgresql://codegym_user:codegym_pass@postgres:5432/codegymnasium
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3007:3007"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./backend/services/challenge-service:/app
+      - /app/node_modules
+
+  # Frontend - Next.js Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: codegymnasium-frontend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api-gateway
+    networks:
+      - codegymnasium-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  codegymnasium-network:
+    driver: bridge

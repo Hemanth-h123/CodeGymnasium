@@ -1,0 +1,52 @@
+{
+  "name": "codegymnasium",
+  "version": "1.0.0",
+  "description": "Technical Skills Learning & Practice Platform - A comprehensive platform for learning programming, data structures, algorithms, and practicing coding challenges",
+  "keywords": [
+    "coding-platform",
+    "learning",
+    "programming",
+    "dsa",
+    "algorithms",
+    "code-execution",
+    "challenges"
+  ],
+  "author": "CodeGymnasium Team",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend/api-gateway",
+    "backend/services/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "cd backend && npm run test",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && npm run lint",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "setup": "npm install && npm run setup:frontend && npm run setup:backend",
+    "setup:frontend": "cd frontend && npm install",
+    "setup:backend": "cd backend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "tailwindcss-animate": "^1.0.7"
+  }
+}
