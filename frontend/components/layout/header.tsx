@@ -43,6 +43,29 @@ export function Header() {
   }, [])
 
   useEffect(() => {
+    async function syncData() {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_URL
+        if (!base) return
+        const [coursesRes, problemsRes] = await Promise.all([
+          fetch(`${base}/api/content/courses`),
+          fetch(`${base}/api/content/problems`)
+        ])
+        if (coursesRes.ok) {
+          const courses = await coursesRes.json()
+          localStorage.setItem('courses', JSON.stringify(courses))
+        }
+        if (problemsRes.ok) {
+          const problems = await problemsRes.json()
+          localStorage.setItem('problems', JSON.stringify(problems))
+        }
+        window.dispatchEvent(new Event('dataChange'))
+      } catch {}
+    }
+    syncData()
+  }, [])
+
+  useEffect(() => {
     // Close dropdown when clicking outside
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
