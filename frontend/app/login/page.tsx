@@ -20,30 +20,27 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // TODO: Implement actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Simulate login
-      if (formData.email && formData.password) {
-        // Set user session
-        localStorage.setItem('isLoggedIn', 'true')
-        localStorage.setItem('userName', formData.email.split('@')[0])
-        localStorage.setItem('userEmail', formData.email)
-        
-        // Trigger auth change event
-        window.dispatchEvent(new Event('authChange'))
-        
-        // Check for redirect destination
-        const redirectPath = localStorage.getItem('redirectAfterLogin')
-        localStorage.removeItem('redirectAfterLogin')
-        
-        router.push(redirectPath || '/dashboard')
-        // Force page reload to update header
-        setTimeout(() => window.location.reload(), 100)
-      } else {
-        setError('Please fill in all fields')
+      const base = process.env.NEXT_PUBLIC_API_URL
+      const res = await fetch(`${base}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, password: formData.password })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || 'Invalid credentials')
       }
-    } catch (err) {
+      const data = await res.json()
+      localStorage.setItem('isLoggedIn', 'true')
+      localStorage.setItem('userName', data.user?.username || formData.email.split('@')[0])
+      localStorage.setItem('userEmail', data.user?.email || formData.email)
+      localStorage.setItem('authToken', data.token)
+      window.dispatchEvent(new Event('authChange'))
+      const redirectPath = localStorage.getItem('redirectAfterLogin')
+      localStorage.removeItem('redirectAfterLogin')
+      router.push(redirectPath || '/dashboard')
+      setTimeout(() => window.location.reload(), 100)
+    } catch (err: any) {
       setError('Login failed. Please try again.')
     } finally {
       setIsLoading(false)
