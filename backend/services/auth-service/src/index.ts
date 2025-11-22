@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import contentRoutes from './routes/content.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { logger } from './utils/logger';
 
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/content', contentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
