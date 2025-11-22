@@ -13,3 +13,5 @@ services:
         value: 20
       - key: NPM_CONFIG_PRODUCTION
         value: false
+      - key: NEXT_PUBLIC_API_URL
+        value: https://auth-service-a862.onrender.com
