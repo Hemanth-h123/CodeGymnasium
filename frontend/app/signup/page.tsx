@@ -35,22 +35,25 @@ export default function SignupPage() {
     }
 
     try {
-      // TODO: Implement actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Set user session
+      const base = process.env.NEXT_PUBLIC_API_URL
+      const res = await fetch(`${base}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, username: formData.username, password: formData.password })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || 'Signup failed')
+      }
+      const data = await res.json()
       localStorage.setItem('isLoggedIn', 'true')
-      localStorage.setItem('userName', formData.username)
-      localStorage.setItem('userEmail', formData.email)
-      
-      // Trigger auth change event
+      localStorage.setItem('userName', data.user?.username || formData.username)
+      localStorage.setItem('userEmail', data.user?.email || formData.email)
+      localStorage.setItem('authToken', data.token)
       window.dispatchEvent(new Event('authChange'))
-      
-      // Simulate signup
       router.push('/dashboard')
-      // Force page reload to update header
       setTimeout(() => window.location.reload(), 100)
-    } catch (err) {
+    } catch (err: any) {
       setError('Signup failed. Please try again.')
     } finally {
       setIsLoading(false)
