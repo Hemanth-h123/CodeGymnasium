@@ -383,6 +383,16 @@ export const courseStore = {
     courses.push(newCourse)
     localStorage.setItem('courses', JSON.stringify(courses))
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/courses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newCourse)
+        })
+      } catch {}
+    }
     return newCourse
   },
 
@@ -445,6 +455,16 @@ export const problemStore = {
     problems.push(newProblem)
     localStorage.setItem('problems', JSON.stringify(problems))
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/problems`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProblem)
+        })
+      } catch {}
+    }
     return newProblem
   },
 
