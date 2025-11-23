@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { getDb, query } from '../db'
 
 type CourseTopic = {
   id: string
@@ -60,11 +61,18 @@ const problems: Problem[] = []
 
 const router = Router()
 
-router.get('/courses', (req, res) => {
-  res.json(courses)
+router.get('/courses', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT id, title, slug, description, category, difficulty, COALESCE(estimated_duration_hours,0) as duration, COALESCE(enrollment_count,0) as enrolled, COALESCE(rating_average,0) as rating, COALESCE(thumbnail_url, \'📚\') as thumbnail, is_published as "isPublished", to_char(created_at, \'YYYY-MM-DD\') as "createdAt" FROM courses ORDER BY created_at DESC')
+      return res.json(rows as Course[])
+    }
+  } catch (e) {}
+  return res.json(courses)
 })
 
-router.post('/courses', (req, res) => {
+router.post('/courses', async (req, res) => {
   const body = req.body || {}
   if (!body.title || !body.slug || !body.category || !body.difficulty || !body.duration) {
     return res.status(400).json({ message: 'Missing required fields' })
@@ -92,6 +100,21 @@ router.post('/courses', (req, res) => {
     associatedProblems: body.associatedProblems || []
   }
   courses.push(newCourse)
+  try {
+    const db = getDb()
+    if (db) {
+      await query('INSERT INTO courses (title, slug, description, category, difficulty, estimated_duration_hours, thumbnail_url, is_published) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [
+        newCourse.title,
+        newCourse.slug,
+        newCourse.description,
+        newCourse.category,
+        newCourse.difficulty,
+        newCourse.duration,
+        newCourse.thumbnail,
+        newCourse.isPublished,
+      ])
+    }
+  } catch (e) {}
   res.status(201).json(newCourse)
 })
 
@@ -103,11 +126,18 @@ router.patch('/courses/:id/publish', (req, res) => {
   res.json(course)
 })
 
-router.get('/problems', (req, res) => {
-  res.json(problems)
+router.get('/problems', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT id, title, slug, difficulty, category, to_char(created_at, \'YYYY-MM-DD\') as "createdAt", is_published as "isPublished", COALESCE(total_submissions,0) as submissions, COALESCE(acceptance_rate,0) as "acceptanceRate" FROM problems ORDER BY created_at DESC')
+      return res.json(rows as Problem[])
+    }
+  } catch (e) {}
+  return res.json(problems)
 })
 
-router.post('/problems', (req, res) => {
+router.post('/problems', async (req, res) => {
   const body = req.body || {}
   if (!body.title || !body.slug || !body.difficulty || !body.category) {
     return res.status(400).json({ message: 'Missing required fields' })
@@ -136,6 +166,18 @@ router.post('/problems', (req, res) => {
     spaceComplexity: body.spaceComplexity
   }
   problems.push(newProblem)
+  try {
+    const db = getDb()
+    if (db) {
+      await query('INSERT INTO problems (title, slug, difficulty, category, is_published) VALUES ($1,$2,$3,$4,$5)', [
+        newProblem.title,
+        newProblem.slug,
+        newProblem.difficulty,
+        newProblem.category,
+        newProblem.isPublished,
+      ])
+    }
+  } catch (e) {}
   res.status(201).json(newProblem)
 })
 
