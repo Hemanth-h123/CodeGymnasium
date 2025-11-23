@@ -354,6 +354,19 @@ const DEFAULT_CHALLENGES: Challenge[] = [
 export const courseStore = {
   getAll: (): Course[] => {
     if (typeof window === 'undefined') return []
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        const xhr = new XMLHttpRequest()
+        xhr.open('GET', `${base}/api/content/courses`, false)
+        xhr.send(null)
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText)
+          localStorage.setItem('courses', JSON.stringify(data))
+          return data
+        }
+      } catch {}
+    }
     const stored = localStorage.getItem('courses')
     if (!stored) return []
     return JSON.parse(stored)
@@ -426,6 +439,19 @@ export const courseStore = {
 export const problemStore = {
   getAll: (): Problem[] => {
     if (typeof window === 'undefined') return []
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        const xhr = new XMLHttpRequest()
+        xhr.open('GET', `${base}/api/content/problems`, false)
+        xhr.send(null)
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText)
+          localStorage.setItem('problems', JSON.stringify(data))
+          return data
+        }
+      } catch {}
+    }
     const stored = localStorage.getItem('problems')
     if (!stored) return []
     return JSON.parse(stored)
