@@ -10,7 +10,7 @@ import { logger } from './utils/logger';
 dotenv.config();
 
 const app: Application = express();
-const PORT = process.env.AUTH_SERVICE_PORT || 3001;
+const PORT = process.env.PORT || process.env.AUTH_SERVICE_PORT || 3001;
 
 // Middleware
 app.use(helmet());
