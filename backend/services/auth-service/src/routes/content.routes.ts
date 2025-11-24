@@ -126,6 +126,53 @@ router.patch('/courses/:id/publish', (req, res) => {
   res.json(course)
 })
 
+router.patch('/courses/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  const updates = req.body || {}
+  const course = courses.find(c => c.id === id)
+  if (course) {
+    Object.assign(course, {
+      title: updates.title ?? course.title,
+      description: updates.description ?? course.description,
+      category: updates.category ?? course.category,
+      difficulty: updates.difficulty ?? course.difficulty,
+      duration: updates.duration ?? course.duration,
+      thumbnail: updates.thumbnail ?? course.thumbnail,
+      isPublished: updates.isPublished ?? course.isPublished,
+    })
+  }
+  try {
+    const db = getDb()
+    if (db) {
+      await query('UPDATE courses SET title=$1, description=$2, category=$3, difficulty=$4, estimated_duration_hours=$5, thumbnail_url=$6, is_published=$7, updated_at=NOW() WHERE id=$8', [
+        updates.title ?? course?.title,
+        updates.description ?? course?.description,
+        updates.category ?? course?.category,
+        updates.difficulty ?? course?.difficulty,
+        updates.duration ?? course?.duration,
+        updates.thumbnail ?? course?.thumbnail,
+        updates.isPublished ?? course?.isPublished,
+        id,
+      ])
+    }
+  } catch (e) {}
+  if (!course) return res.status(404).json({ message: 'Not found' })
+  return res.json(course)
+})
+
+router.delete('/courses/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  const index = courses.findIndex(c => c.id === id)
+  if (index !== -1) courses.splice(index, 1)
+  try {
+    const db = getDb()
+    if (db) {
+      await query('DELETE FROM courses WHERE id=$1', [id])
+    }
+  } catch (e) {}
+  return res.status(204).send()
+})
+
 router.get('/problems', async (req, res) => {
   try {
     const db = getDb()
@@ -179,6 +226,57 @@ router.post('/problems', async (req, res) => {
     }
   } catch (e) {}
   res.status(201).json(newProblem)
+})
+
+router.patch('/problems/:id/publish', (req, res) => {
+  const id = Number(req.params.id)
+  const problem = problems.find(p => p.id === id)
+  if (!problem) return res.status(404).json({ message: 'Not found' })
+  problem.isPublished = !problem.isPublished
+  return res.json(problem)
+})
+
+router.patch('/problems/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  const updates = req.body || {}
+  const problem = problems.find(p => p.id === id)
+  if (problem) {
+    Object.assign(problem, {
+      title: updates.title ?? problem.title,
+      description: updates.description ?? problem.description,
+      category: updates.category ?? problem.category,
+      difficulty: updates.difficulty ?? problem.difficulty,
+      isPublished: updates.isPublished ?? problem.isPublished,
+    })
+  }
+  try {
+    const db = getDb()
+    if (db) {
+      await query('UPDATE problems SET title=$1, description=$2, category=$3, difficulty=$4, is_published=$5, updated_at=NOW() WHERE id=$6', [
+        updates.title ?? problem?.title,
+        updates.description ?? problem?.description,
+        updates.category ?? problem?.category,
+        updates.difficulty ?? problem?.difficulty,
+        updates.isPublished ?? problem?.isPublished,
+        id,
+      ])
+    }
+  } catch (e) {}
+  if (!problem) return res.status(404).json({ message: 'Not found' })
+  return res.json(problem)
+})
+
+router.delete('/problems/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  const index = problems.findIndex(p => p.id === id)
+  if (index !== -1) problems.splice(index, 1)
+  try {
+    const db = getDb()
+    if (db) {
+      await query('DELETE FROM problems WHERE id=$1', [id])
+    }
+  } catch (e) {}
+  return res.status(204).send()
 })
 
 export default router
