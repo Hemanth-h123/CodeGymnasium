@@ -416,6 +416,16 @@ export const courseStore = {
     courses[index] = { ...courses[index], ...updates }
     localStorage.setItem('courses', JSON.stringify(courses))
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/courses/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        })
+      } catch {}
+    }
     return true
   },
 
@@ -425,13 +435,26 @@ export const courseStore = {
     if (filtered.length === courses.length) return false
     localStorage.setItem('courses', JSON.stringify(filtered))
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/courses/${id}`, { method: 'DELETE' })
+      } catch {}
+    }
     return true
   },
 
   togglePublish: (id: number): boolean => {
     const course = courseStore.getById(id)
     if (!course) return false
-    return courseStore.update(id, { isPublished: !course.isPublished })
+    const ok = courseStore.update(id, { isPublished: !course.isPublished })
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/courses/${id}/publish`, { method: 'PATCH' })
+      } catch {}
+    }
+    return ok
   }
 }
 
@@ -501,6 +524,16 @@ export const problemStore = {
     problems[index] = { ...problems[index], ...updates }
     localStorage.setItem('problems', JSON.stringify(problems))
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/problems/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        })
+      } catch {}
+    }
     return true
   },
 
@@ -510,13 +543,26 @@ export const problemStore = {
     if (filtered.length === problems.length) return false
     localStorage.setItem('problems', JSON.stringify(filtered))
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/problems/${id}`, { method: 'DELETE' })
+      } catch {}
+    }
     return true
   },
 
   togglePublish: (id: number): boolean => {
     const problem = problemStore.getById(id)
     if (!problem) return false
-    return problemStore.update(id, { isPublished: !problem.isPublished })
+    const ok = problemStore.update(id, { isPublished: !problem.isPublished })
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/problems/${id}/publish`, { method: 'PATCH' })
+      } catch {}
+    }
+    return ok
   },
 
   markSolved: (id: number): boolean => {
