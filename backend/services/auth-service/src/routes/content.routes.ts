@@ -60,6 +60,8 @@ const courses: Course[] = []
 const problems: Problem[] = []
 
 const router = Router()
+const topicProgress = new Map<string, Set<string>>()
+const topicExtras = new Map<string, { examples: any[]; problemIds: number[] }>()
 
 router.get('/courses', async (req, res) => {
   try {
@@ -280,3 +282,35 @@ router.delete('/problems/:id', async (req, res) => {
 })
 
 export default router
+// Topic progress
+router.post('/topics/:id/complete', (req, res) => {
+  const email = (req.body && req.body.email) || req.header('X-User-Email') || ''
+  const topicId = String(req.params.id)
+  if (!email) return res.status(400).json({ message: 'Missing email' })
+  const set = topicProgress.get(email) || new Set<string>()
+  set.add(topicId)
+  topicProgress.set(email, set)
+  return res.status(200).json({ completed: Array.from(set) })
+})
+
+router.get('/topics/progress', (req, res) => {
+  const email = String(req.query.email || '')
+  if (!email) return res.status(400).json({ message: 'Missing email' })
+  const set = topicProgress.get(email) || new Set<string>()
+  return res.json({ completed: Array.from(set) })
+})
+
+// Topic extras (examples and associated problem IDs)
+router.get('/topics/:id/extras', (req, res) => {
+  const topicId = String(req.params.id)
+  const v = topicExtras.get(topicId) || { examples: [], problemIds: [] }
+  return res.json(v)
+})
+
+router.post('/topics/:id/extras', (req, res) => {
+  const topicId = String(req.params.id)
+  const { examples = [], problemIds = [] } = req.body || {}
+  const v = { examples, problemIds }
+  topicExtras.set(topicId, v)
+  return res.status(200).json(v)
+})
