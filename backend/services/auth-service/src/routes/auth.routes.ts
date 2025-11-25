@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 const users = new Map<string, { email: string; username: string; passwordHash: string }>();
 
 const router = Router();
+const resetTokens = new Map<string, string>();
 
 // POST /api/auth/register - Register new user
 router.post('/register', async (req, res) => {
@@ -56,12 +57,25 @@ router.post('/verify-email', (req, res) => {
 
 // POST /api/auth/forgot-password - Request password reset
 router.post('/forgot-password', (req, res) => {
-  return res.status(200).json({ message: 'OK' });
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ message: 'Missing email' });
+  if (!users.has(email)) return res.status(404).json({ message: 'User not found' });
+  const token = Math.random().toString(36).slice(2, 10);
+  resetTokens.set(email, token);
+  return res.status(200).json({ message: 'Reset token generated', token });
 });
 
 // POST /api/auth/reset-password - Reset password
-router.post('/reset-password', (req, res) => {
-  return res.status(200).json({ message: 'OK' });
+router.post('/reset-password', async (req, res) => {
+  const { email, token, newPassword } = req.body || {};
+  if (!email || !token || !newPassword) return res.status(400).json({ message: 'Missing fields' });
+  const expected = resetTokens.get(email);
+  if (!expected || expected !== token) return res.status(400).json({ message: 'Invalid token' });
+  const user = users.get(email);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
+  resetTokens.delete(email);
+  return res.status(200).json({ message: 'Password updated' });
 });
 
 export default router;
