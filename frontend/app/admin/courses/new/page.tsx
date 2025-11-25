@@ -13,6 +13,8 @@ interface CourseTopic {
   duration: number
   videoUrl?: string
   order: number
+  examples?: CourseExample[]
+  associatedProblems?: number[]
 }
 
 interface CourseExample {
@@ -71,9 +73,9 @@ export default function NewCoursePage() {
     e.preventDefault()
     setIsLoading(true)
     
-    try {
-      // Create course using the data store
-      courseStore.add({
+  try {
+    // Create course using the data store
+    courseStore.add({
         title: formData.title,
         slug: formData.slug,
         description: formData.description,
@@ -87,9 +89,21 @@ export default function NewCoursePage() {
         learningOutcomes: formData.learningOutcomes,
         syllabus: formData.syllabus,
         courseTopics: topics,
-        courseExamples: examples,
-        associatedProblems: selectedProblems
-      })
+      courseExamples: examples,
+      associatedProblems: selectedProblems
+    })
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        for (const t of topics) {
+          await fetch(`${base}/api/content/topics/${t.id}/extras`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ examples: t.examples || [], problemIds: t.associatedProblems || [] })
+          })
+        }
+      } catch {}
+    }
       
       alert('Course created successfully!')
       router.push('/admin/courses')
@@ -109,7 +123,9 @@ export default function NewCoursePage() {
       content: '',
       duration: 30,
       videoUrl: '',
-      order: topics.length
+      order: topics.length,
+      examples: [],
+      associatedProblems: []
     }
     setTopics([...topics, newTopic])
   }
@@ -519,9 +535,9 @@ export default function NewCoursePage() {
                         </button>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <div>
-                        <input
+                <div className="space-y-3">
+                  <div>
+                    <input
                           type="text"
                           value={topic.title}
                           onChange={(e) => updateTopic(topic.id, 'title', e.target.value)}
@@ -569,11 +585,36 @@ export default function NewCoursePage() {
                             value={topic.videoUrl || ''}
                             onChange={(e) => updateTopic(topic.id, 'videoUrl', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                            placeholder="https://..."
-                          />
-                        </div>
-                      </div>
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Examples for this Topic</h4>
+                  <button type="button" onClick={() => updateTopic(topic.id, 'examples', [...(topic.examples||[]), { id: Date.now().toString(), title: '', description: '', code: '', language: 'javascript', explanation: '' }])} className="px-2 py-1 bg-blue-600 text-white text-xs rounded">Add Example</button>
+                  {(topic.examples||[]).map((ex, idx) => (
+                    <div key={ex.id} className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <input value={ex.title} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], title: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded" placeholder="Example title" />
+                      <input value={ex.language} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], language: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded" placeholder="Language" />
+                      <textarea value={ex.description} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], description: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded md:col-span-2" placeholder="Description" />
+                      <textarea value={ex.code} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], code: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded md:col-span-2" placeholder="Code" />
+                      <textarea value={ex.explanation} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], explanation: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded md:col-span-2" placeholder="Explanation" />
+                      <button type="button" onClick={() => { const arr = [...(topic.examples||[])]; arr.splice(idx, 1); updateTopic(topic.id, 'examples', arr) }} className="px-2 py-1 bg-red-600 text-white text-xs rounded">Remove Example</button>
                     </div>
+                  ))}
+                </div>
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Associate Problems to this Topic</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {availableProblems.map((p) => (
+                      <label key={p.id} className="flex items-center space-x-2 text-sm">
+                        <input type="checkbox" checked={(topic.associatedProblems||[]).includes(p.id)} onChange={() => { const set = new Set(topic.associatedProblems||[]); if (set.has(p.id)) set.delete(p.id); else set.add(p.id); updateTopic(topic.id, 'associatedProblems', Array.from(set)) }} />
+                        <span>{p.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
                   </div>
                 ))
               )}
