@@ -34,6 +34,23 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
       setLoading(false)
     }
     loadData()
+    ;(async () => {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_URL
+        const email = localStorage.getItem('userEmail') || ''
+        if (!base || !email) return
+        const res = await fetch(`${base}/api/content/topics/progress?email=${encodeURIComponent(email)}`)
+        const data = await res.json()
+        if (Array.isArray(data.completed) && topics.length) {
+          const completedSet = new Set(data.completed.map(String))
+          const updated = (c?.courseTopics || []).map((t: any) => completedSet.has(String(t.id)) ? { ...t, completed: true } : t)
+          setTopics(updated)
+          const idx = updated.findIndex((t: any) => String(t.id) === String(params.id))
+          setCurrentIndex(idx)
+          setTopic(idx >= 0 ? updated[idx] : null)
+        }
+      } catch {}
+    })()
     window.addEventListener('dataChange', loadData)
     return () => window.removeEventListener('dataChange', loadData)
   }, [params.slug, params.id])
@@ -76,6 +93,17 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
     setTopic({ ...topic, completed: true })
     courseStore.update(course.id, { courseTopics: updated })
     window.dispatchEvent(new Event('dataChange'))
+    const base = process.env.NEXT_PUBLIC_API_URL
+    const email = localStorage.getItem('userEmail') || ''
+    if (base && email) {
+      try {
+        void fetch(`${base}/api/content/topics/${topic.id}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-User-Email': email },
+          body: JSON.stringify({ email })
+        })
+      } catch {}
+    }
   }
 
   const goPrev = () => {
