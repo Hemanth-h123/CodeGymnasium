@@ -43,7 +43,8 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
         const data = await res.json()
         if (Array.isArray(data.completed) && topics.length) {
           const completedSet = new Set(data.completed.map(String))
-          const updated = (c?.courseTopics || []).map((t: any) => completedSet.has(String(t.id)) ? { ...t, completed: true } : t)
+          const courseObj = courseStore.getBySlug(params.slug)
+          const updated = (courseObj?.courseTopics || []).map((t: any) => completedSet.has(String(t.id)) ? { ...t, completed: true } : t)
           setTopics(updated)
           const idx = updated.findIndex((t: any) => String(t.id) === String(params.id))
           setCurrentIndex(idx)
