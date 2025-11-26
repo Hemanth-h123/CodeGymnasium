@@ -13,6 +13,8 @@ interface CourseTopic {
   duration: number
   videoUrl?: string
   order: number
+  examples?: CourseExample[]
+  associatedProblems?: number[]
 }
 
 interface CourseExample {
@@ -30,8 +32,6 @@ export default function EditCoursePage() {
   const courseId = parseInt(params.id as string)
   const [isLoading, setIsLoading] = useState(false)
   const [topics, setTopics] = useState<CourseTopic[]>([])
-  const [examples, setExamples] = useState<CourseExample[]>([])
-  const [selectedProblems, setSelectedProblems] = useState<number[]>([])
   const [availableProblems, setAvailableProblems] = useState<any[]>([])
   const [formData, setFormData] = useState({
     title: '',
@@ -79,10 +79,8 @@ export default function EditCoursePage() {
       syllabus: course.syllabus || ''
     })
 
-    // Load topics, examples, and associated problems
+    // Load topics
     if (course.courseTopics) setTopics(course.courseTopics)
-    if (course.courseExamples) setExamples(course.courseExamples)
-    if (course.associatedProblems) setSelectedProblems(course.associatedProblems)
   }, [router, courseId])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,10 +101,20 @@ export default function EditCoursePage() {
         learningOutcomes: formData.learningOutcomes,
         syllabus: formData.syllabus,
         topics: topics.length,
-        courseTopics: topics,
-        courseExamples: examples,
-        associatedProblems: selectedProblems
+        courseTopics: topics
       })
+      const base = process.env.NEXT_PUBLIC_API_URL
+      if (base) {
+        try {
+          for (const t of topics) {
+            await fetch(`${base}/api/content/topics/${t.id}/extras`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ examples: t.examples || [], problemIds: t.associatedProblems || [] })
+            })
+          }
+        } catch {}
+      }
       
       alert('Course updated successfully!')
       router.push('/admin/courses')
@@ -155,35 +163,7 @@ export default function EditCoursePage() {
     setTopics(newTopics)
   }
 
-  // Example Management
-  const addExample = () => {
-    const newExample: CourseExample = {
-      id: Date.now().toString(),
-      title: '',
-      description: '',
-      code: '',
-      language: 'javascript',
-      explanation: ''
-    }
-    setExamples([...examples, newExample])
-  }
-
-  const updateExample = (id: string, field: keyof CourseExample, value: any) => {
-    setExamples(examples.map(e => e.id === id ? { ...e, [field]: value } : e))
-  }
-
-  const removeExample = (id: string) => {
-    setExamples(examples.filter(e => e.id !== id))
-  }
-
-  // Problem Selection
-  const toggleProblem = (problemId: number) => {
-    if (selectedProblems.includes(problemId)) {
-      setSelectedProblems(selectedProblems.filter(id => id !== problemId))
-    } else {
-      setSelectedProblems([...selectedProblems, problemId])
-    }
-  }
+  // Removed global examples/problems; use per-topic editors
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -392,19 +372,44 @@ export default function EditCoursePage() {
                             min="1"
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            Video URL (optional)
-                          </label>
-                          <input
-                            type="url"
-                            value={topic.videoUrl || ''}
-                            onChange={(e) => updateTopic(topic.id, 'videoUrl', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                            placeholder="https://..."
-                          />
-                        </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        Video URL (optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={topic.videoUrl || ''}
+                        onChange={(e) => updateTopic(topic.id, 'videoUrl', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Examples for this Topic</h4>
+                    <button type="button" onClick={() => updateTopic(topic.id, 'examples', [...(topic.examples||[]), { id: Date.now().toString(), title: '', description: '', code: '', language: 'javascript', explanation: '' }])} className="px-2 py-1 bg-blue-600 text-white text-xs rounded">Add Example</button>
+                    {(topic.examples||[]).map((ex, idx) => (
+                      <div key={ex.id} className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input value={ex.title} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], title: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded" placeholder="Example title" />
+                        <input value={ex.language} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], language: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded" placeholder="Language" />
+                        <textarea value={ex.description} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], description: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded md:col-span-2" placeholder="Description" />
+                        <textarea value={ex.code} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], code: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded md:col-span-2" placeholder="Code" />
+                        <textarea value={ex.explanation} onChange={(e) => { const arr = [...(topic.examples||[])]; arr[idx] = { ...arr[idx], explanation: e.target.value }; updateTopic(topic.id, 'examples', arr) }} className="px-3 py-2 border rounded md:col-span-2" placeholder="Explanation" />
+                        <button type="button" onClick={() => { const arr = [...(topic.examples||[])]; arr.splice(idx, 1); updateTopic(topic.id, 'examples', arr) }} className="px-2 py-1 bg-red-600 text-white text-xs rounded">Remove Example</button>
                       </div>
+                    ))}
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Associate Problems to this Topic</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {availableProblems.map((p) => (
+                        <label key={p.id} className="flex items-center space-x-2 text-sm">
+                          <input type="checkbox" checked={(topic.associatedProblems||[]).includes(p.id)} onChange={() => { const set = new Set(topic.associatedProblems||[]); if (set.has(p.id)) set.delete(p.id); else set.add(p.id); updateTopic(topic.id, 'associatedProblems', Array.from(set)) }} />
+                          <span>{p.title}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                     </div>
                   </div>
                 ))
@@ -412,123 +417,8 @@ export default function EditCoursePage() {
             </div>
           </div>
 
-          {/* Course Examples */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Code Examples ({examples.length})
-              </h2>
-              <button
-                type="button"
-                onClick={addExample}
-                className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Example
-              </button>
-            </div>
-            <div className="space-y-4">
-              {examples.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                  No examples added yet.
-                </p>
-              ) : (
-                examples.map((example, index) => (
-                  <div key={example.id} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Example {index + 1}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => removeExample(example.id)}
-                        className="p-1 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={example.title}
-                          onChange={(e) => updateExample(example.id, 'title', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                          placeholder="Example title"
-                        />
-                        <select
-                          value={example.language}
-                          onChange={(e) => updateExample(example.id, 'language', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                        >
-                          <option value="javascript">JavaScript</option>
-                          <option value="python">Python</option>
-                          <option value="java">Java</option>
-                          <option value="cpp">C++</option>
-                          <option value="go">Go</option>
-                        </select>
-                      </div>
-                      <textarea
-                        value={example.description}
-                        onChange={(e) => updateExample(example.id, 'description', e.target.value)}
-                        rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                        placeholder="Description"
-                      />
-                      <textarea
-                        value={example.code}
-                        onChange={(e) => updateExample(example.id, 'code', e.target.value)}
-                        rows={6}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-900 text-green-400 text-sm font-mono"
-                        placeholder="// Code here..."
-                      />
-                      <textarea
-                        value={example.explanation}
-                        onChange={(e) => updateExample(example.id, 'explanation', e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                        placeholder="Explanation"
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
 
-          {/* Associated Problems */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Associated Practice Problems ({selectedProblems.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-              {availableProblems.map((problem) => (
-                <label
-                  key={problem.id}
-                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    selectedProblems.includes(problem.id)
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedProblems.includes(problem.id)}
-                    onChange={() => toggleProblem(problem.id)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {problem.title}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {problem.difficulty} • {problem.category}
-                    </p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
+
 
           {/* Publishing Options */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
