@@ -14,6 +14,7 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
   const [loading, setLoading] = useState(true)
   const [topics, setTopics] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState<number>(-1)
+  const [extras, setExtras] = useState<{ examples: any[]; problemIds: number[] }>({ examples: [], problemIds: [] })
 
   useEffect(() => {
     setMounted(true)
@@ -33,8 +34,29 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
           const idx = tp.findIndex((t: any) => String(t.id) === String(params.id))
           setTopics(tp)
           setCurrentIndex(idx)
-          setTopic(idx >= 0 ? tp[idx] : null)
+          const tSel = idx >= 0 ? tp[idx] : null
+          setTopic(tSel)
           setLoading(false)
+          try {
+            const email = localStorage.getItem('userEmail') || ''
+            if (email) {
+              const res = await fetch(`${base}/api/content/topics/progress?email=${encodeURIComponent(email)}`)
+              const data = await res.json()
+              if (Array.isArray(data.completed)) {
+                const completedSet = new Set(data.completed.map(String))
+                const updated = tp.map((t: any) => completedSet.has(String(t.id)) ? { ...t, completed: true } : t)
+                setTopics(updated)
+                const nIdx = updated.findIndex((t: any) => String(t.id) === String(params.id))
+                setCurrentIndex(nIdx)
+                setTopic(nIdx >= 0 ? updated[nIdx] : null)
+              }
+            }
+            if (tSel) {
+              const exRes = await fetch(`${base}/api/content/topics/${tSel.id}/extras`)
+              const exData = await exRes.json()
+              setExtras({ examples: exData.examples || [], problemIds: exData.problemIds || [] })
+            }
+          } catch {}
         }).catch(() => {
           const tp = c.courseTopics || []
           const idx = tp.findIndex((t: any) => String(t.id) === String(params.id))
@@ -53,22 +75,14 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
       }
     }
     loadData()
+    // extras fetch when topic changes
     ;(async () => {
       try {
         const base = process.env.NEXT_PUBLIC_API_URL
-        const email = localStorage.getItem('userEmail') || ''
-        if (!base || !email) return
-        const res = await fetch(`${base}/api/content/topics/progress?email=${encodeURIComponent(email)}`)
-        const data = await res.json()
-        if (Array.isArray(data.completed) && topics.length) {
-          const completedSet = new Set(data.completed.map(String))
-          const courseObj = courseStore.getBySlug(params.slug)
-          const updated = (courseObj?.courseTopics || []).map((t: any) => completedSet.has(String(t.id)) ? { ...t, completed: true } : t)
-          setTopics(updated)
-          const idx = updated.findIndex((t: any) => String(t.id) === String(params.id))
-          setCurrentIndex(idx)
-          setTopic(idx >= 0 ? updated[idx] : null)
-        }
+        if (!base || !topic) return
+        const exRes = await fetch(`${base}/api/content/topics/${topic.id}/extras`)
+        const exData = await exRes.json()
+        setExtras({ examples: exData.examples || [], problemIds: exData.problemIds || [] })
       } catch {}
     })()
     window.addEventListener('dataChange', loadData)
@@ -232,6 +246,27 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
                   </div>
                 )}
               </div>
+
+              {extras.examples.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Examples</h3>
+                  <div className="space-y-4">
+                    {extras.examples.map((ex: any, i: number) => (
+                      <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900 dark:text-white">{ex.title || `Example ${i + 1}`}</h4>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{ex.language || 'code'}</span>
+                        </div>
+                        {ex.description && <p className="text-gray-700 dark:text-gray-300 mb-2">{ex.description}</p>}
+                        {ex.code && (
+                          <pre className="bg-gray-900 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{ex.code}</code></pre>
+                        )}
+                        {ex.explanation && <p className="text-gray-700 dark:text-gray-300 mt-2">{ex.explanation}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 flex items-center justify-between">
                 <button
