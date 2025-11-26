@@ -419,7 +419,7 @@ export const courseStore = {
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/courses/${id}`, {
+        void fetch(`${base}/api/content/courses/by-slug/${courses[index].slug}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates)
@@ -438,7 +438,10 @@ export const courseStore = {
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/courses/${id}`, { method: 'DELETE' })
+        const course = courses.find(c => c.id === id)
+        if (course) {
+          void fetch(`${base}/api/content/courses/by-slug/${course.slug}`, { method: 'DELETE' })
+        }
       } catch {}
     }
     return true
@@ -451,7 +454,11 @@ export const courseStore = {
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/courses/${id}/publish`, { method: 'PATCH' })
+        void fetch(`${base}/api/content/courses/by-slug/${course.slug}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPublished: !course.isPublished })
+        })
       } catch {}
     }
     return ok
@@ -527,7 +534,7 @@ export const problemStore = {
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/problems/${id}`, {
+        void fetch(`${base}/api/content/problems/by-slug/${problems[index].slug}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates)
@@ -546,7 +553,10 @@ export const problemStore = {
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/problems/${id}`, { method: 'DELETE' })
+        const problem = problems.find(p => p.id === id)
+        if (problem) {
+          void fetch(`${base}/api/content/problems/by-slug/${problem.slug}`, { method: 'DELETE' })
+        }
       } catch {}
     }
     return true
@@ -559,7 +569,11 @@ export const problemStore = {
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/problems/${id}/publish`, { method: 'PATCH' })
+        void fetch(`${base}/api/content/problems/by-slug/${problem.slug}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPublished: !problem.isPublished })
+        })
       } catch {}
     }
     return ok
