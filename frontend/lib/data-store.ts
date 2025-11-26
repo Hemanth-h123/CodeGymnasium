@@ -483,7 +483,10 @@ export const problemStore = {
       } catch {}
     }
     const stored = localStorage.getItem('problems')
-    if (!stored) return []
+    if (!stored) {
+      localStorage.setItem('problems', JSON.stringify(DEFAULT_PROBLEMS))
+      return DEFAULT_PROBLEMS
+    }
     return JSON.parse(stored)
   },
 
