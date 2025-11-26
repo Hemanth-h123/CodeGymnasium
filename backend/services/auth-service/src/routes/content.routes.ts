@@ -115,6 +115,23 @@ router.post('/courses', async (req, res) => {
         newCourse.thumbnail,
         newCourse.isPublished,
       ])
+      const courseRows = await query<any>('SELECT id FROM courses WHERE slug=$1', [newCourse.slug])
+      const courseId = courseRows[0]?.id
+      if (courseId && Array.isArray(newCourse.courseTopics)) {
+        for (const t of newCourse.courseTopics) {
+          await query('INSERT INTO topics (course_id, title, slug, description, content, video_url, order_index, estimated_duration_minutes, is_published) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [
+            courseId,
+            t.title,
+            String(t.id),
+            t.description || '',
+            t.content || '',
+            t.videoUrl || null,
+            t.order,
+            t.duration || null,
+            true,
+          ])
+        }
+      }
     }
   } catch (e) {}
   res.status(201).json(newCourse)
@@ -172,6 +189,56 @@ router.delete('/courses/:id', async (req, res) => {
       await query('DELETE FROM courses WHERE id=$1', [id])
     }
   } catch (e) {}
+  return res.status(204).send()
+})
+
+// Slug-based course operations (persistent)
+router.patch('/courses/by-slug/:slug', async (req, res) => {
+  const slug = String(req.params.slug)
+  const updates = req.body || {}
+  try {
+    const db = getDb()
+    if (db) {
+      await query('UPDATE courses SET title=$1, description=$2, category=$3, difficulty=$4, estimated_duration_hours=$5, thumbnail_url=$6, is_published=$7, updated_at=NOW() WHERE slug=$8', [
+        updates.title,
+        updates.description,
+        updates.category,
+        updates.difficulty,
+        updates.duration,
+        updates.thumbnail,
+        updates.isPublished,
+        slug,
+      ])
+      const rows = await query<any>('SELECT id, title, slug, description, category, difficulty, COALESCE(estimated_duration_hours,0) as duration, COALESCE(thumbnail_url,\'📚\') as thumbnail, is_published as "isPublished" FROM courses WHERE slug=$1', [slug])
+      if (!rows.length) return res.status(404).json({ message: 'Not found' })
+      return res.json(rows[0])
+    }
+  } catch (e) {}
+  const course = courses.find(c => c.slug === slug)
+  if (!course) return res.status(404).json({ message: 'Not found' })
+  Object.assign(course, {
+    title: updates.title ?? course.title,
+    description: updates.description ?? course.description,
+    category: updates.category ?? course.category,
+    difficulty: updates.difficulty ?? course.difficulty,
+    duration: updates.duration ?? course.duration,
+    thumbnail: updates.thumbnail ?? course.thumbnail,
+    isPublished: updates.isPublished ?? course.isPublished,
+  })
+  return res.json(course)
+})
+
+router.delete('/courses/by-slug/:slug', async (req, res) => {
+  const slug = String(req.params.slug)
+  try {
+    const db = getDb()
+    if (db) {
+      await query('DELETE FROM courses WHERE slug=$1', [slug])
+      return res.status(204).send()
+    }
+  } catch (e) {}
+  const index = courses.findIndex(c => c.slug === slug)
+  if (index !== -1) courses.splice(index, 1)
   return res.status(204).send()
 })
 
@@ -281,21 +348,91 @@ router.delete('/problems/:id', async (req, res) => {
   return res.status(204).send()
 })
 
+// Slug-based problem operations (persistent)
+router.patch('/problems/by-slug/:slug', async (req, res) => {
+  const slug = String(req.params.slug)
+  const updates = req.body || {}
+  try {
+    const db = getDb()
+    if (db) {
+      await query('UPDATE problems SET title=$1, description=$2, category=$3, difficulty=$4, is_published=$5, updated_at=NOW() WHERE slug=$6', [
+        updates.title,
+        updates.description,
+        updates.category,
+        updates.difficulty,
+        updates.isPublished,
+        slug,
+      ])
+      const rows = await query<any>('SELECT id, title, slug, difficulty, category, to_char(created_at, \'YYYY-MM-DD\') as "createdAt", is_published as "isPublished" FROM problems WHERE slug=$1', [slug])
+      if (!rows.length) return res.status(404).json({ message: 'Not found' })
+      return res.json(rows[0])
+    }
+  } catch (e) {}
+  const problem = problems.find(p => p.slug === slug)
+  if (!problem) return res.status(404).json({ message: 'Not found' })
+  Object.assign(problem, {
+    title: updates.title ?? problem.title,
+    description: updates.description ?? problem.description,
+    category: updates.category ?? problem.category,
+    difficulty: updates.difficulty ?? problem.difficulty,
+    isPublished: updates.isPublished ?? problem.isPublished,
+  })
+  return res.json(problem)
+})
+
+router.delete('/problems/by-slug/:slug', async (req, res) => {
+  const slug = String(req.params.slug)
+  try {
+    const db = getDb()
+    if (db) {
+      await query('DELETE FROM problems WHERE slug=$1', [slug])
+      return res.status(204).send()
+    }
+  } catch (e) {}
+  const index = problems.findIndex(p => p.slug === slug)
+  if (index !== -1) problems.splice(index, 1)
+  return res.status(204).send()
+})
+
 export default router
 // Topic progress
-router.post('/topics/:id/complete', (req, res) => {
+router.post('/topics/:id/complete', async (req, res) => {
   const email = (req.body && req.body.email) || req.header('X-User-Email') || ''
-  const topicId = String(req.params.id)
+  const topicSlug = String(req.params.id)
   if (!email) return res.status(400).json({ message: 'Missing email' })
+  try {
+    const db = getDb()
+    if (db) {
+      const userRows = await query<any>('SELECT id FROM users WHERE email=$1', [email])
+      if (!userRows.length) return res.status(404).json({ message: 'User not found' })
+      const userId = userRows[0].id
+      const topicRows = await query<any>('SELECT id FROM topics WHERE slug=$1', [topicSlug])
+      if (!topicRows.length) return res.status(404).json({ message: 'Topic not found' })
+      const topicId = topicRows[0].id
+      await query('INSERT INTO user_topic_progress (user_id, topic_id, is_completed, completed_at) VALUES ($1,$2,true,NOW()) ON CONFLICT (user_id, topic_id) DO UPDATE SET is_completed=EXCLUDED.is_completed, completed_at=EXCLUDED.completed_at, updated_at=NOW()', [userId, topicId])
+      const completedRows = await query<any>('SELECT t.slug FROM user_topic_progress utp JOIN topics t ON utp.topic_id=t.id WHERE utp.user_id=$1 AND utp.is_completed=true', [userId])
+      return res.status(200).json({ completed: completedRows.map(r => String(r.slug)) })
+    }
+  } catch (e) {}
   const set = topicProgress.get(email) || new Set<string>()
-  set.add(topicId)
+  set.add(topicSlug)
   topicProgress.set(email, set)
   return res.status(200).json({ completed: Array.from(set) })
 })
 
-router.get('/topics/progress', (req, res) => {
+router.get('/topics/progress', async (req, res) => {
   const email = String(req.query.email || '')
   if (!email) return res.status(400).json({ message: 'Missing email' })
+  try {
+    const db = getDb()
+    if (db) {
+      const userRows = await query<any>('SELECT id FROM users WHERE email=$1', [email])
+      if (!userRows.length) return res.json({ completed: [] })
+      const userId = userRows[0].id
+      const completedRows = await query<any>('SELECT t.slug FROM user_topic_progress utp JOIN topics t ON utp.topic_id=t.id WHERE utp.user_id=$1 AND utp.is_completed=true', [userId])
+      return res.json({ completed: completedRows.map(r => String(r.slug)) })
+    }
+  } catch (e) {}
   const set = topicProgress.get(email) || new Set<string>()
   return res.json({ completed: Array.from(set) })
 })
@@ -313,4 +450,21 @@ router.post('/topics/:id/extras', (req, res) => {
   const v = { examples, problemIds }
   topicExtras.set(topicId, v)
   return res.status(200).json(v)
+})
+router.get('/courses/:slug/topics', async (req, res) => {
+  const slug = String(req.params.slug)
+  try {
+    const db = getDb()
+    if (db) {
+      const courseRows = await query<any>('SELECT id FROM courses WHERE slug=$1', [slug])
+      const courseId = courseRows[0]?.id
+      if (!courseId) return res.status(404).json({ message: 'Course not found' })
+      const rows = await query<any>('SELECT id, title, slug, description, content, video_url, order_index, estimated_duration_minutes FROM topics WHERE course_id=$1 ORDER BY order_index ASC', [courseId])
+      const mapped = rows.map(r => ({ id: String(r.slug), title: r.title, description: r.description, content: r.content, videoUrl: r.video_url, order: r.order_index, duration: r.estimated_duration_minutes }))
+      return res.json(mapped)
+    }
+  } catch (e) {}
+  // Fallback to in-memory
+  const course = courses.find(c => c.slug === slug)
+  return res.json(course?.courseTopics || [])
 })
