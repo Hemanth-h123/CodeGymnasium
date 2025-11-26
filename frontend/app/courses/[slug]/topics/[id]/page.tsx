@@ -26,12 +26,31 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
         return
       }
       setCourse(c)
-      const tp = c.courseTopics || []
-      const idx = tp.findIndex((t: any) => String(t.id) === String(params.id))
-      setTopics(tp)
-      setCurrentIndex(idx)
-      setTopic(idx >= 0 ? tp[idx] : null)
-      setLoading(false)
+      const base = process.env.NEXT_PUBLIC_API_URL
+      if (base) {
+        fetch(`${base}/api/content/courses/${c.slug}/topics`).then(async (r) => {
+          const tp = await r.json()
+          const idx = tp.findIndex((t: any) => String(t.id) === String(params.id))
+          setTopics(tp)
+          setCurrentIndex(idx)
+          setTopic(idx >= 0 ? tp[idx] : null)
+          setLoading(false)
+        }).catch(() => {
+          const tp = c.courseTopics || []
+          const idx = tp.findIndex((t: any) => String(t.id) === String(params.id))
+          setTopics(tp)
+          setCurrentIndex(idx)
+          setTopic(idx >= 0 ? tp[idx] : null)
+          setLoading(false)
+        })
+      } else {
+        const tp = c.courseTopics || []
+        const idx = tp.findIndex((t: any) => String(t.id) === String(params.id))
+        setTopics(tp)
+        setCurrentIndex(idx)
+        setTopic(idx >= 0 ? tp[idx] : null)
+        setLoading(false)
+      }
     }
     loadData()
     ;(async () => {
