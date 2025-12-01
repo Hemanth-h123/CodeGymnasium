@@ -413,13 +413,14 @@ export const courseStore = {
     const courses = courseStore.getAll()
     const index = courses.findIndex(c => c.id === id)
     if (index === -1) return false
+    const prevSlug = courses[index].slug
     courses[index] = { ...courses[index], ...updates }
     localStorage.setItem('courses', JSON.stringify(courses))
     window.dispatchEvent(new Event('dataChange'))
     const base = process.env.NEXT_PUBLIC_API_URL
     if (base) {
       try {
-        void fetch(`${base}/api/content/courses/by-slug/${courses[index].slug}`, {
+        void fetch(`${base}/api/content/courses/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates)
