@@ -32,6 +32,7 @@ export default function EditCoursePage() {
   const courseId = parseInt(params.id as string)
   const [isLoading, setIsLoading] = useState(false)
   const [topics, setTopics] = useState<CourseTopic[]>([])
+  const [originalSlug, setOriginalSlug] = useState('')
   const [availableProblems, setAvailableProblems] = useState<any[]>([])
   const [formData, setFormData] = useState({
     title: '',
@@ -78,6 +79,7 @@ export default function EditCoursePage() {
       learningOutcomes: course.learningOutcomes || '',
       syllabus: course.syllabus || ''
     })
+    setOriginalSlug(course.slug)
 
     // Load topics
     if (course.courseTopics) setTopics(course.courseTopics)
@@ -113,6 +115,11 @@ export default function EditCoursePage() {
               body: JSON.stringify({ examples: t.examples || [], problemIds: t.associatedProblems || [] })
             })
           }
+          await fetch(`${base}/api/content/courses/${originalSlug}/topics`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(topics)
+          })
         } catch {}
       }
       
