@@ -468,3 +468,35 @@ router.get('/courses/:slug/topics', async (req, res) => {
   const course = courses.find(c => c.slug === slug)
   return res.json(course?.courseTopics || [])
 })
+
+router.put('/courses/:slug/topics', async (req, res) => {
+  const slug = String(req.params.slug)
+  const newTopics: CourseTopic[] = (req.body || []) as CourseTopic[]
+  try {
+    const db = getDb()
+    if (db) {
+      const courseRows = await query<any>('SELECT id FROM courses WHERE slug=$1', [slug])
+      const courseId = courseRows[0]?.id
+      if (!courseId) return res.status(404).json({ message: 'Course not found' })
+      await query('DELETE FROM topics WHERE course_id=$1', [courseId])
+      for (const t of newTopics) {
+        await query('INSERT INTO topics (course_id, title, slug, description, content, video_url, order_index, estimated_duration_minutes, is_published) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [
+          courseId,
+          t.title,
+          String(t.id),
+          t.description || '',
+          t.content || '',
+          t.videoUrl || null,
+          t.order,
+          t.duration || null,
+          true,
+        ])
+      }
+      return res.json({ updated: newTopics.length })
+    }
+  } catch (e) {}
+  const course = courses.find(c => c.slug === slug)
+  if (!course) return res.status(404).json({ message: 'Course not found' })
+  course.courseTopics = newTopics
+  return res.json({ updated: newTopics.length })
+})
