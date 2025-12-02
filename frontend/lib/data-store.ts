@@ -354,7 +354,7 @@ const DEFAULT_CHALLENGES: Challenge[] = [
 export const courseStore = {
   getAll: (): Course[] => {
     if (typeof window === 'undefined') return []
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     if (base) {
       try {
         const xhr = new XMLHttpRequest()
@@ -396,7 +396,7 @@ export const courseStore = {
     courses.push(newCourse)
     localStorage.setItem('courses', JSON.stringify(courses))
     window.dispatchEvent(new Event('dataChange'))
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     if (base) {
       try {
         void fetch(`${base}/api/content/courses`, {
@@ -417,7 +417,7 @@ export const courseStore = {
     courses[index] = { ...courses[index], ...updates }
     localStorage.setItem('courses', JSON.stringify(courses))
     window.dispatchEvent(new Event('dataChange'))
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     if (base) {
       try {
         void fetch(`${base}/api/content/courses/${id}`, {
@@ -436,7 +436,7 @@ export const courseStore = {
     if (filtered.length === courses.length) return false
     localStorage.setItem('courses', JSON.stringify(filtered))
     window.dispatchEvent(new Event('dataChange'))
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     if (base) {
       try {
         const course = courses.find(c => c.id === id)
@@ -452,7 +452,7 @@ export const courseStore = {
     const course = courseStore.getById(id)
     if (!course) return false
     const ok = courseStore.update(id, { isPublished: !course.isPublished })
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     if (base) {
       try {
         void fetch(`${base}/api/content/courses/by-slug/${course.slug}`, {
@@ -470,7 +470,7 @@ export const courseStore = {
 export const problemStore = {
   getAll: (): Problem[] => {
     if (typeof window === 'undefined') return []
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     if (base) {
       try {
         const xhr = new XMLHttpRequest()
