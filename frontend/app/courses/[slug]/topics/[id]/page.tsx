@@ -27,7 +27,7 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
         return
       }
       setCourse(c)
-      const base = process.env.NEXT_PUBLIC_API_URL
+      const base = process.env.NEXT_PUBLIC_API_URL || window.location.origin
       if (base) {
         fetch(`${base}/api/content/courses/${c.slug}/topics`).then(async (r) => {
           const tp = await r.json()
@@ -127,7 +127,7 @@ export default function CourseTopicPage({ params }: { params: { slug: string; id
     setTopic({ ...topic, completed: true })
     courseStore.update(course.id, { courseTopics: updated })
     window.dispatchEvent(new Event('dataChange'))
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || window.location.origin
     const email = localStorage.getItem('userEmail') || ''
     if (base && email) {
       try {
