@@ -20,7 +20,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL
+      const base = process.env.NEXT_PUBLIC_API_URL || window.location.origin
       const res = await fetch(`${base}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
