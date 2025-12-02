@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { getDb, query } from '../db'
+import { Script, createContext } from 'vm'
+import { spawn } from 'child_process'
 
 type CourseTopic = {
   id: string
@@ -418,6 +420,52 @@ router.post('/topics/:id/complete', async (req, res) => {
   set.add(topicSlug)
   topicProgress.set(email, set)
   return res.status(200).json({ completed: Array.from(set) })
+})
+
+// Code execution (basic, JS sandbox + Python child process)
+router.post('/code/execute', async (req, res) => {
+  const { language = 'javascript', code = '', input = '' } = req.body || {}
+  const started = Date.now()
+  try {
+    if (language === 'javascript' || language === 'typescript') {
+      const logs: string[] = []
+      const sandbox = {
+        console: {
+          log: (...args: any[]) => {
+            logs.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
+          },
+        },
+        input,
+      }
+      const context = createContext(sandbox)
+      const script = new Script(code)
+      script.runInContext(context, { timeout: 1000 })
+      const duration = Date.now() - started
+      return res.json({ output: logs.join('\n'), duration })
+    }
+    if (language === 'python') {
+      const py = spawn('python', ['-u', '-'], { stdio: ['pipe', 'pipe', 'pipe'] })
+      let out = ''
+      let err = ''
+      py.stdout.on('data', (d) => (out += d.toString()))
+      py.stderr.on('data', (d) => (err += d.toString()))
+      py.on('error', () => {})
+      py.stdin.write(code)
+      if (input) py.stdin.write(`\n\n# input\n${input}\n`)
+      py.stdin.end()
+      py.on('close', () => {
+        const duration = Date.now() - started
+        if (err) return res.status(200).json({ output: out, error: err, duration })
+        return res.json({ output: out, duration })
+      })
+      return
+    }
+    const duration = Date.now() - started
+    return res.status(400).json({ message: 'Language not supported', duration })
+  } catch (e: any) {
+    const duration = Date.now() - started
+    return res.status(200).json({ output: '', error: e?.message || 'Execution failed', duration })
+  }
 })
 
 router.get('/topics/progress', async (req, res) => {
