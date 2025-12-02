@@ -88,7 +88,7 @@ export default function NewCoursePage() {
       syllabus: formData.syllabus,
       courseTopics: topics
     })
-    const base = process.env.NEXT_PUBLIC_API_URL
+    const base = process.env.NEXT_PUBLIC_API_URL || window.location.origin
     if (base) {
       try {
         for (const t of topics) {
