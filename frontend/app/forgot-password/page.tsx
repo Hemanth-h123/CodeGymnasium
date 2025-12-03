@@ -12,13 +12,13 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const base = process.env.NEXT_PUBLIC_API_URL
+  const base = ''
 
   const requestReset = async () => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${base}/api/auth/forgot-password`, {
+      const res = await fetch(`/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${base}/api/auth/reset-password`, {
+      const res = await fetch(`/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, token, newPassword })
