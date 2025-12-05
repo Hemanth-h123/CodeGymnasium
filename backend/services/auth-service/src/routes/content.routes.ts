@@ -2,6 +2,9 @@ import { Router } from 'express'
 import { getDb, query } from '../db'
 import { Script, createContext } from 'vm'
 import { spawn } from 'child_process'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 
 type CourseTopic = {
   id: string
@@ -455,8 +458,122 @@ router.post('/code/execute', async (req, res) => {
       py.stdin.end()
       py.on('close', () => {
         const duration = Date.now() - started
-        if (err) return res.status(200).json({ output: out, error: err, duration })
-        return res.json({ output: out, duration })
+        const combined = (out + (err ? `\n${err}` : '')).trim()
+        return res.status(200).json({ output: combined, error: err, duration })
+      })
+      return
+    }
+    if (language === 'java') {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-java-'))
+      let className = 'Main'
+      const m = code.match(/class\s+(\w+)/)
+      if (m) className = m[1]
+      const src = path.join(tmp, `${className}.java`)
+      fs.writeFileSync(src, code)
+      const javac = spawn('javac', [src], { cwd: tmp })
+      let cErr = ''
+      javac.stderr.on('data', (d) => (cErr += d.toString()))
+      javac.on('close', (codeExit) => {
+        if (codeExit !== 0) {
+          const duration = Date.now() - started
+          const combined = cErr.trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: cErr, duration })
+        }
+        const j = spawn('java', ['-cp', tmp, className], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+        let out = ''
+        let err = ''
+        j.stdout.on('data', (d) => (out += d.toString()))
+        j.stderr.on('data', (d) => (err += d.toString()))
+        if (input) j.stdin.write(input)
+        j.stdin.end()
+        j.on('close', () => {
+          const duration = Date.now() - started
+          const combined = (out + (err ? `\n${err}` : '')).trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: err, duration })
+        })
+      })
+      return
+    }
+    if (language === 'cpp') {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-cpp-'))
+      const src = path.join(tmp, 'main.cpp')
+      const bin = path.join(tmp, process.platform === 'win32' ? 'a.exe' : 'a.out')
+      fs.writeFileSync(src, code)
+      const gpp = spawn('g++', [src, '-O2', '-std=c++17', '-o', bin], { cwd: tmp })
+      let cErr = ''
+      gpp.stderr.on('data', (d) => (cErr += d.toString()))
+      gpp.on('close', (codeExit) => {
+        if (codeExit !== 0) {
+          const duration = Date.now() - started
+          const combined = cErr.trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: cErr, duration })
+        }
+        const run = spawn(bin, [], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+        let out = ''
+        let err = ''
+        run.stdout.on('data', (d) => (out += d.toString()))
+        run.stderr.on('data', (d) => (err += d.toString()))
+        if (input) run.stdin.write(input)
+        run.stdin.end()
+        run.on('close', () => {
+          const duration = Date.now() - started
+          const combined = (out + (err ? `\n${err}` : '')).trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: err, duration })
+        })
+      })
+      return
+    }
+    if (language === 'go') {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-go-'))
+      const src = path.join(tmp, 'main.go')
+      fs.writeFileSync(src, code)
+      const run = spawn('go', ['run', src], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+      let out = ''
+      let err = ''
+      run.stdout.on('data', (d) => (out += d.toString()))
+      run.stderr.on('data', (d) => (err += d.toString()))
+      if (input) run.stdin.write(input)
+      run.stdin.end()
+      run.on('close', () => {
+        const duration = Date.now() - started
+        const combined = (out + (err ? `\n${err}` : '')).trim()
+        fs.rm(tmp, { recursive: true, force: true }, () => {})
+        return res.status(200).json({ output: combined, error: err, duration })
+      })
+      return
+    }
+    if (language === 'rust') {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-rs-'))
+      const src = path.join(tmp, 'main.rs')
+      const bin = path.join(tmp, process.platform === 'win32' ? 'main.exe' : 'main')
+      fs.writeFileSync(src, code)
+      const rustc = spawn('rustc', [src, '-O', '-o', bin], { cwd: tmp })
+      let cErr = ''
+      rustc.stderr.on('data', (d) => (cErr += d.toString()))
+      rustc.on('close', (codeExit) => {
+        if (codeExit !== 0) {
+          const duration = Date.now() - started
+          const combined = cErr.trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: cErr, duration })
+        }
+        const run = spawn(bin, [], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+        let out = ''
+        let err = ''
+        run.stdout.on('data', (d) => (out += d.toString()))
+        run.stderr.on('data', (d) => (err += d.toString()))
+        if (input) run.stdin.write(input)
+        run.stdin.end()
+        run.on('close', () => {
+          const duration = Date.now() - started
+          const combined = (out + (err ? `\n${err}` : '')).trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: err, duration })
+        })
       })
       return
     }
