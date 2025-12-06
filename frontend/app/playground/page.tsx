@@ -68,8 +68,7 @@ export default function PlaygroundPage() {
     setTestResults([])
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || window.location.origin
-      const res = await fetch(`${base}/api/content/code/execute`, {
+      const res = await fetch(`/api/content/code/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language, code })
@@ -84,7 +83,7 @@ export default function PlaygroundPage() {
         const results: { id: string; passed: boolean; output: string }[] = []
         for (const tc of testCases) {
           try {
-            const r = await fetch(`${base}/api/content/code/execute`, {
+            const r = await fetch(`/api/content/code/execute`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ language, code, input: tc.input })
