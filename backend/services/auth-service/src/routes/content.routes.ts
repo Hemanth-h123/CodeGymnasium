@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { getDb, query } from '../db'
 import { Script, createContext } from 'vm'
-import { spawn } from 'child_process'
+import { spawn, spawnSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -464,6 +464,12 @@ router.post('/code/execute', async (req, res) => {
       return
     }
     if (language === 'java') {
+      const javacOk = !spawnSync('javac', ['-version']).error
+      const javaOk = !spawnSync('java', ['-version']).error
+      if (!javacOk || !javaOk) {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: 'Java toolchain not available', duration })
+      }
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-java-'))
       let className = 'Main'
       const m = code.match(/class\s+(\w+)/)
@@ -501,6 +507,12 @@ router.post('/code/execute', async (req, res) => {
       const src = path.join(tmp, 'main.cpp')
       const bin = path.join(tmp, process.platform === 'win32' ? 'a.exe' : 'a.out')
       fs.writeFileSync(src, code)
+      const gppExists = !spawnSync('g++', ['--version']).error
+      if (!gppExists) {
+        const duration = Date.now() - started
+        fs.rm(tmp, { recursive: true, force: true }, () => {})
+        return res.status(200).json({ output: 'C++ toolchain not available', duration })
+      }
       const gpp = spawn('g++', [src, '-O2', '-std=c++17', '-o', bin], { cwd: tmp })
       let cErr = ''
       gpp.stderr.on('data', (d) => (cErr += d.toString()))
@@ -528,6 +540,11 @@ router.post('/code/execute', async (req, res) => {
       return
     }
     if (language === 'go') {
+      const goOk = !spawnSync('go', ['version']).error
+      if (!goOk) {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: 'Go toolchain not available', duration })
+      }
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-go-'))
       const src = path.join(tmp, 'main.go')
       fs.writeFileSync(src, code)
@@ -547,6 +564,11 @@ router.post('/code/execute', async (req, res) => {
       return
     }
     if (language === 'rust') {
+      const rustOk = !spawnSync('rustc', ['--version']).error
+      if (!rustOk) {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: 'Rust toolchain not available', duration })
+      }
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-rs-'))
       const src = path.join(tmp, 'main.rs')
       const bin = path.join(tmp, process.platform === 'win32' ? 'main.exe' : 'main')
