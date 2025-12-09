@@ -46,6 +46,18 @@ export default function PlaygroundPage() {
     )
   }
 
+  const getTemplate = (lang: string) => {
+    if (lang === 'javascript') return "// JavaScript\nfunction main() {\n  console.log('Hello, JavaScript!')\n}\nmain()";
+    if (lang === 'typescript') return "// TypeScript\nfunction main(msg: string): void {\n  console.log(msg)\n}\nmain('Hello, TypeScript!')";
+    if (lang === 'python') return "# Python\nprint('Hello, Python!')";
+    if (lang === 'java') return "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}";
+    if (lang === 'cpp') return "#include <iostream>\nint main(){ std::cout << \"Hello, C++!\" << std::endl; return 0; }";
+    if (lang === 'go') return "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello, Go!\") }";
+    if (lang === 'rust') return "fn main(){ println!(\"Hello, Rust!\"); }";
+    if (lang === 'csharp') return "using System;\nclass Program{ static void Main(){ Console.WriteLine(\"Hello, C#!\"); } }";
+    return code;
+  }
+
   const addTestCase = () => {
     setTestCases([...testCases, { id: Date.now().toString(), input: '', expectedOutput: '' }])
   }
@@ -172,15 +184,17 @@ export default function PlaygroundPage() {
               </label>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => { const v = e.target.value; setLanguage(v); setCode(getTemplate(v)); }}
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
                 <option value="python">Python</option>
                 <option value="java">Java</option>
                 <option value="cpp">C++</option>
                 <option value="go">Go</option>
                 <option value="rust">Rust</option>
+                <option value="csharp">C#</option>
               </select>
             </div>
 
