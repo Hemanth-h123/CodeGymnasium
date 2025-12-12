@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
-import { CodeExecutor } from './src/executor/codeExecutor'
-import { SupportedLanguage } from ./config/language';
-  const app = express();
+import { CodeExecutor } from './src/executor/codeExecutor';
+import { SupportedLanguage } from './config/languages';
+const app = express();
 const executor = new CodeExecutor();
 
 app.use(express.json());
