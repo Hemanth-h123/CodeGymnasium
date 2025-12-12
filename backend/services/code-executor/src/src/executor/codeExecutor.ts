@@ -79,11 +79,10 @@ export class CodeExecutor {
       javascript: `node ${filepath}`,
       typescript: `ts-node ${filepath}`,
       python: `python3 ${filepath}`,
-      java: `javac ${filepath} && java -cp $(dirname ${filepath}) $(basename ${filepath} .java)`,
-      cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
-      go: `go run ${filepath}`,
-      rust: `rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
-      csharp: `csc ${filepath} && ${filepath}.exe`,
+    java: `/usr/bin/javac ${filepath} && /usr/bin/java -cp $(dirname ${filepath}) $(basename ${filepath} .java)`,      cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
+      go: `/usr/local/go/bin/go run ${filepath}`,
+      rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
+      csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
     };
     return commands[language] || `node ${filepath}`;
   }
