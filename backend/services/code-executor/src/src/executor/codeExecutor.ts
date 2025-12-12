@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { SupportedLanguage } from '../config/languages';
+import { SupportedLanguage } from '../../config/languages';
 
 export interface ExecutionResult {
   output: string;
@@ -60,8 +60,8 @@ export class CodeExecutor {
     }
   }
 
-  private getExtension(language: Language): string {
-    const extensions: Record<Language, string> = {
+  private getExtension(language: SupportedLanguage): string {
+    const extensions: Record<SupportedLanguage, string> = {
       javascript: 'js',
       typescript: 'ts',
       python: 'py',
@@ -71,7 +71,7 @@ export class CodeExecutor {
       rust: 'rs',
       csharp: 'cs',
     };
-    return extensions[SupportedLanguage] || 'txt';
+    return extensions[language] || 'txt';
   }
 
   private getExecutionCommand(language: SupportedLanguage, filepath: string): string {
