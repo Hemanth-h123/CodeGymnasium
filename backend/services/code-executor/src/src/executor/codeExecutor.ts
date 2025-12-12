@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { Language } from '../config/languages';
+import { SupportedLanguage } from '../config/languages';
 
 export interface ExecutionResult {
   output: string;
@@ -20,7 +20,7 @@ export class CodeExecutor {
     }
   }
 
-  async execute(language: Language, code: string, timeout: number = 5000): Promise<ExecutionResult> {
+  async execute(language: SupportedLanguage, code: string, timeout: number = 5000): Promise<ExecutionResult> {
     const startTime = Date.now();
     const filename = `${this.tempDir}/temp_${Date.now()}`;
 
@@ -71,11 +71,11 @@ export class CodeExecutor {
       rust: 'rs',
       csharp: 'cs',
     };
-    return extensions[language] || 'txt';
+    return extensions[SupportedLanguage] || 'txt';
   }
 
-  private getExecutionCommand(language: Language, filepath: string): string {
-    const commands: Record<Language, string> = {
+  private getExecutionCommand(language: SupportedLanguage, filepath: string): string {
+    const commands: Record<SupportedLanguage, string> = {
       javascript: `node ${filepath}`,
       typescript: `ts-node ${filepath}`,
       python: `python3 ${filepath}`,
