@@ -16,12 +16,26 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go
-RUN curl -sSL https://golang.org/dl/go1.21.3.linux-x86_64.tar.gz | tar -xz -C /usr/local \
-    && ln -s /usr/local/go/bin/go /usr/bin/go
+RUN curl -sL https://golang.org/dl/go1.21.3.linux-x86_64.tar.gz | tar -xz -C /usr/local \
+    && /usr/local/go/bin/go version
 
 # Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH=/root/.cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && /root/.cargo/bin/rustc --version
+
+# Set permanent PATH for all tools
+ENV PATH=/usr/local/go/bin:/root/.cargo/bin:/root/.local/bin:$PATH
+
+# Verify all toolchains are available
+RUN echo "=== Verifying Toolchains ===" \
+    && go version \
+    && rustc --version \
+    && javac -version \
+    && g++ --version \
+    && python3 --version \
+    && node --version \
+    && npx --version \
+    && mono --version
 
 WORKDIR /app
 
