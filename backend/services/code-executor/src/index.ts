@@ -1,14 +1,13 @@
 import express, { Request, Response } from 'express';
 import { CodeExecutor } from './executor/codeExecutor';
-import { Language } from './config/languages';
-
+import { SupportedLanguage } from './config/languages';
 const app = express();
 const executor = new CodeExecutor();
 
 app.use(express.json());
 
 interface ExecuteRequest {
-  language: Language;
+  language: SupportedLanguage;
   code: string;
   timeout?: number;
 }
