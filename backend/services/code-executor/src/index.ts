@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { CodeExecutor } from './src/executor/codeExecutor'
-import { SupportedLanguage } from './src/config/languages'
+import { SupportedLanguage } from ./c/config/languages'
   const app = express();
 const executor = new CodeExecutor();
 
