@@ -3,9 +3,10 @@ FROM node:20-bullseye
 # Install language toolchains: Java, C++, Go, Rust, .NET SDK
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+      ca-certificates \
       openjdk-17-jdk \
       g++ \
-      golang \
+      golang-go \
       rustc cargo \
       wget \
       apt-transport-https \
