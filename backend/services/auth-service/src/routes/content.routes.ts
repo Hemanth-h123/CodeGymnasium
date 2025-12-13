@@ -638,7 +638,7 @@ router.post('/code/execute', async (req, res) => {
       const csproj = `<?xml version="1.0" encoding="utf-8"?>\n<Project Sdk="Microsoft.NET.Sdk">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net8.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n  </PropertyGroup>\n</Project>`
       fs.writeFileSync(proj, csproj)
       fs.writeFileSync(prog, code)
-      const run = spawn('dotnet', ['run', '--no-build'], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+      const run = spawn('dotnet', ['run'], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
       let out = ''
       let err = ''
       run.stdout.on('data', (d) => (out += d.toString()))
