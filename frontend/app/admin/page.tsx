@@ -23,31 +23,19 @@ export default function AdminDashboard() {
   }
   // Mock data - TODO: Fetch from API
   const stats = {
-    totalUsers: 15234,
-    activeUsers: 8942,
-    totalCourses: 45,
-    totalProblems: 523,
-    totalSubmissions: 124567,
-    activeChallenges: 3,
-    pendingReports: 12,
-    discussions: 2456
+    totalUsers: 0
+    activeUsers: 0
+    totalCourses: 0
+    totalProblems: 0
+    totalSubmissions: 0
+    activeChallenges: 0,
+    pendingReports:0,
+    discussions: 0
   }
 
-  const recentActivity = [
-    { id: 1, type: 'user', action: 'New user registered', user: 'john_doe', time: '5 min ago' },
-    { id: 2, type: 'submission', action: 'Problem solved', user: 'alice_smith', problem: 'Two Sum', time: '12 min ago' },
-    { id: 3, type: 'course', action: 'Course completed', user: 'bob_jones', course: 'Data Structures', time: '23 min ago' },
-    { id: 4, type: 'report', action: 'Content reported', user: 'user123', time: '1 hour ago' },
-    { id: 5, type: 'challenge', action: 'Challenge created', user: 'admin', challenge: 'Weekly Contest #126', time: '2 hours ago' }
-  ]
+  const recentActivity = []
 
-  const topPerformers = [
-    { rank: 1, username: 'coding_master', score: 4567, problems: 234 },
-    { rank: 2, username: 'algo_wizard', score: 4123, problems: 198 },
-    { rank: 3, username: 'dev_ninja', score: 3890, problems: 176 },
-    { rank: 4, username: 'code_warrior', score: 3654, problems: 165 },
-    { rank: 5, username: 'tech_guru', score: 3421, problems: 152 }
-  ]
+  const topPerformers = []
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
