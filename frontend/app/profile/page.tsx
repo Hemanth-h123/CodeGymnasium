@@ -47,10 +47,10 @@ export default function ProfilePage() {
 
   // Mock stats
   const stats = {
-    problemsSolved: 127,
-    currentStreak: 15,
-    totalScore: 4523,
-    rank: 'Gold',
+    problemsSolved: 0,
+    currentStreak: 0,
+    totalScore: 0,
+    rank: 'Beginner',
     joinedDate: 'January 2024',
   }
 
