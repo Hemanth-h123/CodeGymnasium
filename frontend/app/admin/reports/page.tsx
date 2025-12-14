@@ -19,58 +19,6 @@ export default function ReportsPage() {
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('all')
   const [reports, setReports] = useState<Report[]>([
-    {
-      id: 1,
-      type: 'problem',
-      title: 'Two Sum - Incorrect Test Case',
-      reportedBy: 'john_doe',
-      reason: 'Incorrect test case',
-      status: 'pending',
-      createdAt: '2025-11-20',
-      description: 'Test case #3 has wrong expected output'
-    },
-    {
-      id: 2,
-      type: 'discussion',
-      title: 'Spam post in Algorithms discussion',
-      reportedBy: 'alice_smith',
-      reason: 'Spam',
-      status: 'pending',
-      createdAt: '2025-11-19',
-      description: 'User posting promotional links'
-    },
-    {
-      id: 3,
-      type: 'user',
-      title: 'Abusive user behavior',
-      reportedBy: 'admin_user',
-      reason: 'Harassment',
-      status: 'resolved',
-      createdAt: '2025-11-18',
-      description: 'User sending inappropriate messages'
-    },
-    {
-      id: 4,
-      type: 'course',
-      title: 'Web Development - Broken video link',
-      reportedBy: 'student_123',
-      reason: 'Technical issue',
-      status: 'resolved',
-      createdAt: '2025-11-17',
-      description: 'Lesson 5 video not loading'
-    },
-    {
-      id: 5,
-      type: 'problem',
-      title: 'Graph Traversal - Unclear description',
-      reportedBy: 'coder_xyz',
-      reason: 'Content quality',
-      status: 'dismissed',
-      createdAt: '2025-11-16',
-      description: 'Problem statement needs clarification'
-    }
-  ])
-
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin') === 'true'
     if (!isAdmin) {
