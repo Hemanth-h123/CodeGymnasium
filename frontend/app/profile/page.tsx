@@ -207,9 +207,6 @@ export default function ProfilePage() {
           </h2>
           <div className="space-y-4">
             {[
-              { action: 'Solved', item: 'Two Sum', difficulty: 'Easy', time: '2 hours ago' },
-              { action: 'Attempted', item: 'Merge K Sorted Lists', difficulty: 'Hard', time: '5 hours ago' },
-              { action: 'Solved', item: 'Binary Tree Level Order', difficulty: 'Medium', time: '1 day ago' },
             ].map((activity, index) => (
               <div key={index} className="flex items-center justify-between py-3 border-b dark:border-gray-700 last:border-0">
                 <div className="flex items-center space-x-4">
