@@ -237,7 +237,7 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
                             {p.difficulty} • {p.category}
                           </p>
                         </div>
-                        <Link href={`/problems/${p.slug}`} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <Link href={`/problems/${p.slug}?lang=${(course.title?.toLowerCase().includes('python') || course.category?.toLowerCase() === 'programming') ? 'python' : (course.title?.toLowerCase().includes('javascript') || course.category?.toLowerCase() === 'web development') ? 'javascript' : 'javascript'}`} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                           Solve
                         </Link>
                       </div>
