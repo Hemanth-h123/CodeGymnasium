@@ -23,14 +23,14 @@ export default function AdminDashboard() {
   }
   // Mock data - TODO: Fetch from API
   const stats = {
-    totalUsers: 0
-    activeUsers: 0
-    totalCourses: 0
-    totalProblems: 0
-    totalSubmissions: 0
+    totalUsers: 0,
+    activeUsers: 0,
+    totalCourses: 0,
+    totalProblems: 0,
+    totalSubmissions: 0,
     activeChallenges: 0,
     pendingReports:0,
-    discussions: 0
+    discussions: 0,
   }
 
   const recentActivity = []
