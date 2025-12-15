@@ -29,9 +29,11 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
       }
       setProblem(loadedProblem)
       if (loadedProblem.starterCode && loadedProblem.supportedLanguages) {
-        const defaultLang = loadedProblem.supportedLanguages[0]
-        setLanguage(defaultLang)
-        setCode(loadedProblem.starterCode[defaultLang] || '')
+        const search = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+        const langParam = search?.get('lang') || ''
+        const preferred = loadedProblem.supportedLanguages.includes(langParam) ? langParam : loadedProblem.supportedLanguages[0]
+        setLanguage(preferred)
+        setCode(loadedProblem.starterCode[preferred] || '')
       }
       setLoading(false)
     }
@@ -45,6 +47,21 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
     if (problem?.starterCode) {
       setCode(problem.starterCode[newLang] || '')
     }
+  }
+
+  const parseExamplesToTestCases = (): { id: number; input: string; expected: string }[] => {
+    const text = String(problem?.examples || '')
+    const blocks = text.split('\n\n').filter(Boolean)
+    const cases: { id: number; input: string; expected: string }[] = []
+    let id = 1
+    for (const block of blocks) {
+      const inputMatch = block.match(/Input:\s*(.*)/i)
+      const outputMatch = block.match(/Output:\s*(.*)/i)
+      if (inputMatch && outputMatch) {
+        cases.push({ id: id++, input: inputMatch[1].trim(), expected: outputMatch[1].trim() })
+      }
+    }
+    return cases
   }
 
   const handleReport = () => {
@@ -69,26 +86,36 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
 
   const handleRunCode = async () => {
     setIsRunning(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setTestResults({
-      passed: 2,
-      total: 3,
-      cases: [
-        { id: 1, input: 'test input', expected: 'expected', output: 'output', passed: true, time: 45 }
-      ]
-    })
+    const cases = parseExamplesToTestCases()
+    const results: any[] = []
+    const baseUrl = ''
+    for (const tc of cases) {
+      try {
+        const res = await fetch(`/api/content/code/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language, code, input: tc.input })
+        })
+        const data = await res.json()
+        const out = String(data.output || '').trim()
+        const passed = tc.expected ? out === tc.expected : out.length > 0
+        results.push({ id: tc.id, input: tc.input, expected: tc.expected, output: out, passed, time: Number(data.duration || 0) })
+      } catch {
+        results.push({ id: tc.id, input: tc.input, expected: tc.expected, output: '', passed: false, time: 0 })
+      }
+    }
+    const passedCount = results.filter(r => r.passed).length
+    setTestResults({ passed: passedCount, total: results.length, cases: results })
     setIsRunning(false)
   }
 
   const handleSubmit = async () => {
     setIsRunning(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setTestResults({
-      passed: 3,
-      total: 3,
-      accepted: true,
-      cases: []
-    })
+    if (!testResults) {
+      await handleRunCode()
+    }
+    const accepted = (testResults?.passed || 0) === (testResults?.total || 0)
+    setTestResults({ ...(testResults || { passed: 0, total: 0, cases: [] }), accepted })
     setIsRunning(false)
   }
 
