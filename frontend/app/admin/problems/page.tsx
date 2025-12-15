@@ -239,7 +239,7 @@ export default function AdminProblemsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <Link
-                          href={`/problems/${problem.id}`}
+                          href={`/problems/${problem.slug}`}
                           className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           title="View"
                         >
@@ -252,6 +252,17 @@ export default function AdminProblemsPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Link>
+                        <button
+                          onClick={() => handleTogglePublish(problem.id)}
+                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
+                          title={problem.isPublished ? 'Unpublish' : 'Publish'}
+                        >
+                          {problem.isPublished ? (
+                            <ToggleRight className="h-4 w-4" />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4" />
+                          )}
+                        </button>
                         <button
                           onClick={() => handleDelete(problem.id, problem.title)}
                           className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
