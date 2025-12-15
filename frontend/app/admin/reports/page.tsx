@@ -18,7 +18,7 @@ interface Report {
 export default function ReportsPage() {
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('all')
-  const [reports, setReports] = 
+  const [reports, setReports] = useState<Report[]>([])
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin') === 'true'
     if (!isAdmin) {
