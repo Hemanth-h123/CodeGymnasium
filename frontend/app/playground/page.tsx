@@ -49,8 +49,7 @@ export default function PlaygroundPage() {
   const getTemplate = (lang: string) => {
     if (lang === 'javascript') return "// JavaScript\nfunction main() {\n  console.log('Hello, JavaScript!')\n}\nmain()";
     if (lang === 'typescript') return "// TypeScript\nfunction main(msg: string): void {\n  console.log(msg)\n}\nmain('Hello, TypeScript!')";
-    if (lang === 'python') return "# Python\nprint('Hello, Python!')";
-    if (lang === 'java') return "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}";
+   if (lang === 'java') return "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}";
     if (lang === 'cpp') return "#include <iostream>\nint main(){ std::cout << \"Hello, C++!\" << std::endl; return 0; }";
     if (lang === 'go') return "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello, Go!\") }";
     if (lang === 'rust') return "fn main(){ println!(\"Hello, Rust!\"); }";
@@ -191,8 +190,7 @@ export default function PlaygroundPage() {
               >
                 <option value="javascript">JavaScript</option>
                 <option value="typescript">TypeScript</option>
-                <option value="python">Python</option>
-                <option value="java">Java</option>
+               <option value="java">Java</option>
                 <option value="cpp">C++</option>
                 <option value="go">Go</option>
                 <option value="rust">Rust</option>
