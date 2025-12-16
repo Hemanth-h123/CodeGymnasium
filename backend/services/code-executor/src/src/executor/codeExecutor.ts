@@ -52,8 +52,7 @@ const errorMsg = error.stdout ? String(error.stdout).trim() : (error.stderr ? St
       this.cleanup(`${filename}.*`);
 
       return {
-        output: '',
-        error: errorMsg.trim(),
+output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
         executionTime,
       };
     }
