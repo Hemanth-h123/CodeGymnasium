@@ -87,7 +87,9 @@ export default function PlaygroundPage() {
       })
       const data = await res.json()
       const header = `Executing ${language} code...\n\n`
-      const body = data.output || ''
+      const rawOut = String(data.output || '').trim()
+      const rawErr = String(data.error || '').trim()
+      const body = rawOut.length > 0 ? rawOut : (rawErr.length > 0 ? rawErr : 'No output produced')
       const footer = `\n\nExecution completed in ${data.duration ?? 0}ms`
       setOutput(header + body + footer)
 
@@ -101,7 +103,7 @@ export default function PlaygroundPage() {
               body: JSON.stringify({ language, code, input: tc.input })
             })
             const d = await r.json()
-            const out = String(d.output || '')
+            const out = String(d.output || d.error || '')
             const passed = tc.expectedOutput ? out.trim() === tc.expectedOutput.trim() : out.length > 0
             results.push({ id: tc.id, passed, output: out })
           } catch {
