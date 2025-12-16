@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { SupportedLanguage } from '../../config/languages';
-type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp' | 'python' | 'sql';
+type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp' | 'python' | 'sql' | 'c' | 'html' | 'css';
 
 export interface ExecutionResult {
   output: string;
@@ -65,11 +65,14 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       typescript: 'ts',
      java: 'java',
       cpp: 'cpp',
+      c: 'c',
       go: 'go',
       rust: 'rs',
       csharp: 'cs',
       python: 'py',
       sql: 'sql',
+      html: 'html',
+      css: 'css',
     };
     return extensions[language] || 'txt';
   }
@@ -83,11 +86,14 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       typescript: `ts-node ${filepath}`,
       java: `javac ${filepath} && java -cp ${dir} ${className}`,
       cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
+      c: `gcc -o ${filepath}.out ${filepath} && ${filepath}.out`,
       go: `/usr/local/go/bin/go run ${filepath}`,
       rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
       python: `python ${filepath}`,
       sql: `sqlite3 ${path.join(dir, 'temp.db')} ".read ${filepath}"`,
+      html: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
+      css: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
     };
     return commands[language] || `node ${filepath}`;
   }
