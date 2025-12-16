@@ -35,7 +35,7 @@ export class CodeExecutor {
       const command = this.getExecutionCommand(language, filepath);
 
       // Execute code with timeout
-      const output = execSync(command, { timeout, encoding: 'utf8' });
+      const output = execSync(command,  { timeout, encoding: 'utf8', stdio: 'pipe' });
       const executionTime = Date.now() - startTime;
 
       // Cleanup
@@ -47,8 +47,7 @@ export class CodeExecutor {
       };
     } catch (error: any) {
       const executionTime = Date.now() - startTime;
-      const errorMsg = error.stderr || error.message || String(error);
-
+const errorMsg = error.stdout ? String(error.stdout).trim() : (error.stderr ? String(error.stderr).trim() : (error.message || String(error)));
       // Cleanup on error
       this.cleanup(`${filename}.*`);
 
