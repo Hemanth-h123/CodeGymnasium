@@ -54,6 +54,11 @@ export default function PlaygroundPage() {
     if (lang === 'go') return "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello, Go!\") }";
     if (lang === 'rust') return "fn main(){ println!(\"Hello, Rust!\"); }";
     if (lang === 'csharp') return "using System;\nclass Program{ static void Main(){ Console.WriteLine(\"Hello, C#!\"); } }";
+     if (lang === 'python') return "def solution():\\n return 'Hello, Python!'\\n\\nprint(solution())"
+     if (lang === 'sql') return "SELECT 'Hello, SQL!';"
+     if (lang === 'c') return "#include <stdio.h>\\nint main(){ printf(\\\"Hello, C!\\\\n\\\"); return 0; }"
+     if (lang === 'html') return "<!DOCTYPE html>\\n<html>\\n<body>\\n<h1>Hello, HTML!</h1>\\n</body>\\n</html>"
+     if (lang === 'css') return "/* Hello, CSS! */\\nbody { color: #222; }"
     return code;
   }
 
