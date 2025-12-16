@@ -195,6 +195,11 @@ export default function PlaygroundPage() {
                 <option value="go">Go</option>
                 <option value="rust">Rust</option>
                 <option value="csharp">C#</option>
+                 <option value="python">Python</option>
+                 <option value="sql">SQL</option>
+                 <option value="c">C</option>
+                 <option value="html">HTML</option>
+                 <option value="css">CSS</option>
               </select>
             </div>
 
