@@ -12,6 +12,7 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
   const [loading, setLoading] = useState(true)
   const [code, setCode] = useState('')
   const [language, setLanguage] = useState('javascript')
+  const [output, setOutput] = useState('')
   const [testResults, setTestResults] = useState<any>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [activeTab, setActiveTab] = useState<'description' | 'submissions' | 'discussions'>('description')
@@ -88,7 +89,20 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
     setIsRunning(true)
     const cases = parseExamplesToTestCases()
     const results: any[] = []
-    const baseUrl = ''
+    try {
+      const r = await fetch(`/api/content/code/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language, code })
+      })
+      const d = await r.json()
+      const header = `Executing ${language} code...\n\n`
+      const body = String(d.output || '')
+      const footer = `\n\nExecution completed in ${d.duration ?? 0}ms`
+      setOutput(header + body + footer)
+    } catch {
+      setOutput(`Error executing ${language} code`)
+    }
     for (const tc of cases) {
       try {
         const res = await fetch(`/api/content/code/execute`, {
@@ -328,6 +342,14 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
             </div>
 
             {/* Test Results */}
+            {output && (
+              <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Execution Output
+                </h3>
+                <pre className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{output}</pre>
+              </div>
+            )}
             {testResults && (
               <div className="border-t border-gray-200 dark:border-gray-700 p-4 max-h-64 overflow-y-auto bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center justify-between mb-4">
