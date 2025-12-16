@@ -13,14 +13,7 @@ export const LANGUAGE_SUPPORT = {
     timeout: 8000,
     template: `function solution(): string {\n  return "Hello, World!";\n}\n\nconsole.log(solution());`
   },
-  python: {
-    name: 'Python 3',
-    filename: 'solution.py',
-    command: 'python3',
-    timeout: 5000,
-    template: `def solution():\n    return "Hello, World!"\n\nprint(solution())`
-  },
-  java: {
+    java: {
     name: 'Java',
     filename: 'Solution.java',
     compile: 'javac',
