@@ -6,6 +6,28 @@ export const LANGUAGE_SUPPORT = {
     timeout: 5000,
     template: `function solution() {\n  return "Hello, World!";\n}\n\nconsole.log(solution());`
   },
+  c: {
+    name: 'C',
+    filename: 'solution.c',
+    compile: 'gcc',
+    command: './solution',
+    timeout: 5000,
+    template: `#include <stdio.h>\nint main(){\n    printf("Hello, World!\\n");\n    return 0;\n}`
+  },
+  html: {
+    name: 'HTML',
+    filename: 'index.html',
+    command: 'print',
+    timeout: 3000,
+    template: `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <title>Hello</title>\n</head>\n<body>\n  <h1>Hello, World!</h1>\n</body>\n</html>`
+  },
+  css: {
+    name: 'CSS',
+    filename: 'styles.css',
+    command: 'print',
+    timeout: 3000,
+    template: `/* Hello, World! */\nbody {\n  font-family: sans-serif;\n  color: #222;\n}`
+  },
   python: {
     name: 'Python',
     filename: 'solution.py',
