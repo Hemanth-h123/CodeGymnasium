@@ -78,8 +78,7 @@ export class CodeExecutor {
     const commands: Record<SupportedLanguage, string> = {
       javascript: `node ${filepath}`,
       typescript: `ts-node ${filepath}`,
-      python: `python3 ${filepath}`,
-      java: `/usr/bin/javac ${filepath} && /usr/bin/java -cp $(dirname ${filepath}) $(basename ${filepath} .java)`,
+python: `python3 -u ${filepath}`,      java: `/usr/bin/javac ${filepath} && /usr/bin/java -cp $(dirname ${filepath}) $(basename ${filepath} .java)`,
       cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
       go: `/usr/local/go/bin/go run ${filepath}`,
       rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
