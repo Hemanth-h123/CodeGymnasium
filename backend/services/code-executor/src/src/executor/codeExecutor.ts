@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { SupportedLanguage } from '../../config/languages';
-type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp';
+type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp' | 'python' | 'sql';
 
 export interface ExecutionResult {
   output: string;
@@ -68,6 +68,8 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       go: 'go',
       rust: 'rs',
       csharp: 'cs',
+      python: 'py',
+      sql: 'sql',
     };
     return extensions[language] || 'txt';
   }
@@ -84,6 +86,8 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       go: `/usr/local/go/bin/go run ${filepath}`,
       rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
+      python: `python ${filepath}`,
+      sql: `sqlite3 ${path.join(dir, 'temp.db')} ".read ${filepath}"`,
     };
     return commands[language] || `node ${filepath}`;
   }
