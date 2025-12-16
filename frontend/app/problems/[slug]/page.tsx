@@ -34,7 +34,7 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
         const langParam = search?.get('lang') || ''
         const preferred = loadedProblem.supportedLanguages.includes(langParam) ? langParam : loadedProblem.supportedLanguages[0]
         setLanguage(preferred)
-        setCode(loadedProblem.starterCode[preferred] || '')
+        setCode(loadedProblem.starterCode[preferred] || getTemplate(preferred))
       }
       setLoading(false)
     }
@@ -46,7 +46,7 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
   const handleLanguageChange = (newLang: string) => {
     setLanguage(newLang)
     if (problem?.starterCode) {
-      setCode(problem.starterCode[newLang] || '')
+      setCode(problem.starterCode[newLang] || getTemplate(newLang))
     }
   }
 
@@ -63,6 +63,22 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
       }
     }
     return cases
+  }
+
+  const getTemplate = (lang: string) => {
+    if (lang === 'javascript') return "function solution() { return 'Hello, JavaScript!' }\nconsole.log(solution())"
+    if (lang === 'typescript') return "function solution(): string { return 'Hello, TypeScript!' }\nconsole.log(solution())"
+    if (lang === 'python') return "def solution():\n  return 'Hello, Python!'\nprint(solution())"
+    if (lang === 'sql') return "SELECT 'Hello, SQL!';"
+    if (lang === 'java') return "public class Solution {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}"
+    if (lang === 'cpp') return "#include <iostream>\nint main(){ std::cout << \"Hello, C++!\" << std::endl; return 0; }"
+    if (lang === 'c') return "#include <stdio.h>\nint main(){ printf(\"Hello, C!\\n\"); return 0; }"
+    if (lang === 'go') return "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello, Go!\") }"
+    if (lang === 'rust') return "fn main(){ println!(\"Hello, Rust!\"); }"
+    if (lang === 'csharp') return "using System;\nclass Solution{ static void Main(){ Console.WriteLine(\"Hello, C#!\"); } }"
+    if (lang === 'html') return "<!DOCTYPE html>\n<html>\n  <body>\n    <h1>Hello, HTML!</h1>\n  </body>\n</html>"
+    if (lang === 'css') return "/* Hello, CSS! */\nbody { color: #222; }"
+    return ''
   }
 
   const handleReport = () => {
@@ -188,6 +204,8 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
   // Parse examples and constraints from strings
   const examples = problem.examples ? problem.examples.split('\n\n').filter(Boolean) : []
   const constraints = problem.constraints ? problem.constraints.split('\n').filter(Boolean) : []
+  const defaultLanguages = ['javascript','typescript','python','java','cpp','c','go','rust','csharp','sql','html','css']
+  const supportedLanguages = (problem.supportedLanguages && problem.supportedLanguages.length > 0) ? problem.supportedLanguages : defaultLanguages
 
   return (
     <>
@@ -318,12 +336,12 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
                 onChange={(e) => handleLanguageChange(e.target.value)}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
-                {problem.supportedLanguages?.map((lang: string) => (
+                {supportedLanguages.map((lang: string) => (
                   <option key={lang} value={lang}>{lang.toUpperCase()}</option>
                 ))}
               </select>
               <button
-                onClick={() => setCode(problem.starterCode?.[language] || '')}
+                onClick={() => setCode(problem.starterCode?.[language] || getTemplate(language))}
                 className="flex items-center space-x-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 <RotateCcw className="h-4 w-4" />
