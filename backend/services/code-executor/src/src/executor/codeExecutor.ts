@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { SupportedLanguage } from '../../config/languages';
+type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp';
 
 export interface ExecutionResult {
   output: string;
@@ -59,7 +60,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
   }
 
   private getExtension(language: SupportedLanguage): string {
-    const extensions: Record<SupportedLanguage, string> = {
+    const extensions: Record<SupportedLang, string> = {
       javascript: 'js',
       typescript: 'ts',
      java: 'java',
@@ -72,7 +73,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
   }
 
   private getExecutionCommand(language: SupportedLanguage, filepath: string): string {
-    const commands: Record<SupportedLanguage, string> = {
+    const commands: Record<SupportedLang, string> = {
       javascript: `node ${filepath}`,
       typescript: `ts-node ${filepath}`,
      cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
