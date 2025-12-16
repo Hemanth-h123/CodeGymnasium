@@ -43,8 +43,12 @@ export default function NewProblemPage() {
   const availableLanguages = [
     { value: 'javascript', label: 'JavaScript' },
     { value: 'python', label: 'Python' },
+    { value: 'sql', label: 'SQL' },
     { value: 'java', label: 'Java' },
     { value: 'cpp', label: 'C++' },
+    { value: 'c', label: 'C' },
+    { value: 'html', label: 'HTML' },
+    { value: 'css', label: 'CSS' },
     { value: 'go', label: 'Go' },
     { value: 'rust', label: 'Rust' },
     { value: 'typescript', label: 'TypeScript' },
