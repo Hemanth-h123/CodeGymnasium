@@ -73,10 +73,14 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
   }
 
   private getExecutionCommand(language: SupportedLanguage, filepath: string): string {
+    const path = require('path');
+    const dir = path.dirname(filepath);
+    const className = path.basename(filepath).replace(/\.java$/, '');
     const commands: Record<SupportedLang, string> = {
       javascript: `node ${filepath}`,
       typescript: `ts-node ${filepath}`,
-     cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
+      java: `javac ${filepath} && java -cp ${dir} ${className}`,
+      cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
       go: `/usr/local/go/bin/go run ${filepath}`,
       rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
