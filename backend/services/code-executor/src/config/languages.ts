@@ -6,6 +6,20 @@ export const LANGUAGE_SUPPORT = {
     timeout: 5000,
     template: `function solution() {\n  return "Hello, World!";\n}\n\nconsole.log(solution());`
   },
+  python: {
+    name: 'Python',
+    filename: 'solution.py',
+    command: 'python',
+    timeout: 5000,
+    template: `def solution():\n    return "Hello, World!"\n\nprint(solution())`
+  },
+  sql: {
+    name: 'SQL (SQLite)',
+    filename: 'solution.sql',
+    command: 'sqlite3',
+    timeout: 5000,
+    template: `CREATE TABLE IF NOT EXISTS hello(msg TEXT);\nDELETE FROM hello;\nINSERT INTO hello VALUES ('Hello, World!');\n.headers off\n.mode list\nSELECT msg FROM hello;`
+  },
   typescript: {
     name: 'TypeScript',
     filename: 'solution.ts',
