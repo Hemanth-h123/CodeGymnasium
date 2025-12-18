@@ -566,6 +566,43 @@ router.post('/code/execute', async (req, res) => {
       })
       return
     }
+    if (language === 'c') {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-c-'))
+      const src = path.join(tmp, 'main.c')
+      const bin = path.join(tmp, process.platform === 'win32' ? 'a.exe' : 'a.out')
+      fs.writeFileSync(src, code)
+      const gccExists = !spawnSync('gcc', ['--version']).error
+      if (!gccExists) {
+        const duration = Date.now() - started
+        fs.rm(tmp, { recursive: true, force: true }, () => {})
+        return res.status(200).json({ output: 'C toolchain not available', duration })
+      }
+      const gcc = spawn('gcc', [src, '-O2', '-o', bin], { cwd: tmp })
+      let cErr = ''
+      gcc.stderr.on('data', (d) => (cErr += d.toString()))
+      gcc.on('close', (codeExit) => {
+        if (codeExit !== 0) {
+          const duration = Date.now() - started
+          const combined = cErr.trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: cErr, duration })
+        }
+        const run = spawn(bin, [], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+        let out = ''
+        let err = ''
+        run.stdout.on('data', (d) => (out += d.toString()))
+        run.stderr.on('data', (d) => (err += d.toString()))
+        if (input) run.stdin.write(input)
+        run.stdin.end()
+        run.on('close', () => {
+          const duration = Date.now() - started
+          const combined = (out + (err ? `\n${err}` : '')).trim()
+          fs.rm(tmp, { recursive: true, force: true }, () => {})
+          return res.status(200).json({ output: combined, error: err, duration })
+        })
+      })
+      return
+    }
     if (language === 'go') {
       const goOk = !spawnSync('go', ['version']).error
       if (!goOk) {
@@ -652,6 +689,33 @@ router.post('/code/execute', async (req, res) => {
         return res.status(200).json({ output: combined, error: err, duration })
       })
       return
+    }
+    if (language === 'sql') {
+      const sqliteOk = !spawnSync('sqlite3', ['-version']).error
+      if (!sqliteOk) {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: 'SQL toolchain not available', duration })
+      }
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-sql-'))
+      const db = path.join(tmp, 'temp.db')
+      const script = path.join(tmp, 'script.sql')
+      fs.writeFileSync(script, code)
+      const run = spawn('sqlite3', ['-batch', db, '.read', script], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+      let out = ''
+      let err = ''
+      run.stdout.on('data', (d) => (out += d.toString()))
+      run.stderr.on('data', (d) => (err += d.toString()))
+      run.on('close', () => {
+        const duration = Date.now() - started
+        const combined = (out + (err ? `\n${err}` : '')).trim()
+        fs.rm(tmp, { recursive: true, force: true }, () => {})
+        return res.status(200).json({ output: combined, error: err, duration })
+      })
+      return
+    }
+    if (language === 'html' || language === 'css') {
+      const duration = Date.now() - started
+      return res.status(200).json({ output: String(code || '').trim(), duration })
     }
     const duration = Date.now() - started
     return res.status(200).json({ output: 'Language not supported', duration })
