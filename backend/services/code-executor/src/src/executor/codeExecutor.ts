@@ -48,6 +48,18 @@ export class CodeExecutor {
       };
     } catch (error: any) {
       const executionTime = Date.now() - startTime;
+      
+      // Handle timeout specifically
+      if (error.signal === 'SIGTERM') {
+        // Cleanup on error
+        this.cleanup(`${filename}.*`);
+        return {
+          output: '',
+          error: 'Execution timed out',
+          executionTime: timeout,
+        };
+      }
+      
 const errorMsg = error.stdout ? String(error.stdout).trim() : (error.stderr ? String(error.stderr).trim() : (error.message || String(error)));
       // Cleanup on error
       this.cleanup(`${filename}.*`);
@@ -86,12 +98,12 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       typescript: `ts-node ${filepath}`,
       java: `javac ${filepath} && java -cp ${dir} ${className}`,
       cpp: `g++ -o ${filepath}.out ${filepath} && ${filepath}.out`,
-      c: `gcc -o ${filepath}.out ${filepath} && ${filepath}.out`,
+      c: `gcc -o ${filepath}.out ${filepath} && ${filepath}.out || echo "C toolchain not available. Please install GCC."`,
       go: `/usr/local/go/bin/go run ${filepath}`,
       rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
       python: `python ${filepath}`,
-      sql: `sqlite3 ${path.join(dir, 'temp.db')} ".read ${filepath}"`,
+      sql: `sqlite3 ${path.join(dir, 'temp.db')} ".read ${filepath}" || echo "SQL toolchain not available. Please install sqlite3."`,
       html: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
       css: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
     };
