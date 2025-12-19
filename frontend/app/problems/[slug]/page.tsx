@@ -68,7 +68,7 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
   const getTemplate = (lang: string) => {
     if (lang === 'javascript') return "function solution() { return 'Hello, JavaScript!' }\nconsole.log(solution())"
     if (lang === 'typescript') return "function solution(): string { return 'Hello, TypeScript!' }\nconsole.log(solution())"
-    if (lang === 'python') return "def solution():\n  return 'Hello, Python!'\nprint(solution())"
+    if (lang === 'python') return "def solution():\n    return 'Hello, Python!'\n\nprint(solution())"
     if (lang === 'sql') return "SELECT 'Hello, SQL!';"
     if (lang === 'java') return "public class Solution {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}"
     if (lang === 'cpp') return "#include <iostream>\nint main(){ std::cout << \"Hello, C++!\" << std::endl; return 0; }"
