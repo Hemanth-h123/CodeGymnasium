@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     openjdk-17-jdk \
     mono-complete \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go
@@ -35,7 +36,8 @@ RUN echo "=== Verifying Toolchains ===" \
     && python3 --version \
     && node --version \
     && npx --version \
-    && mono --version
+    && mono --version \
+    && sqlite3 --version
 
 WORKDIR /app
 
