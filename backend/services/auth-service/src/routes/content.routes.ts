@@ -594,7 +594,9 @@ router.post('/code/execute', async (req, res) => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-c-'))
       const src = path.join(tmp, 'main.c')
       const bin = path.join(tmp, process.platform === 'win32' ? 'a.exe' : 'a.out')
-      fs.writeFileSync(src, code)
+      // Properly handle escaped newlines in the code
+      const formattedCode = code.replace(/\\n/g, '\n');
+      fs.writeFileSync(src, formattedCode)
       const gccExists = !spawnSync('gcc', ['--version']).error
       if (!gccExists) {
         const duration = Date.now() - started
@@ -771,13 +773,26 @@ router.post('/code/execute', async (req, res) => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-sql-'))
       const db = path.join(tmp, 'temp.db')
       const script = path.join(tmp, 'script.sql')
-      fs.writeFileSync(script, code)
+      // Properly handle escaped newlines in the SQL code
+      const formattedCode = code.replace(/\\n/g, '\n');
+      fs.writeFileSync(script, formattedCode)
       
       // Create the database file first
       fs.closeSync(fs.openSync(db, 'w'))
       
-      // Execute the SQL script
-      const run = spawn('sqlite3', [db, '.read', script], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
+      // Initialize SQLite with better settings for output
+      const initCommands = [
+        '.mode column',
+        '.headers on',
+        '.nullvalue NULL'
+      ];
+      
+      // Write initialization commands to a file
+      const initFile = path.join(tmp, 'init.sql');
+      fs.writeFileSync(initFile, initCommands.join('\n') + '\n');
+      
+      // Execute the SQL script with better output formatting
+      const run = spawn('sqlite3', [db, '.read', initFile, '.read', script], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
       let out = ''
       let err = ''
       run.stdout.on('data', (d) => (out += d.toString()))
