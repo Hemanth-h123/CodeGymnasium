@@ -93,6 +93,19 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
     const path = require('path');
     const dir = path.dirname(filepath);
     const className = path.basename(filepath).replace(/\.java$/, '');
+      
+    // For SQL, create initialization commands
+    if (language === 'sql') {
+      const dbPath = path.join(dir, 'temp.db');
+      const initCommands = [
+        '.mode column',
+        '.headers on',
+        '.nullvalue NULL'
+      ].join(';');
+        
+      return `echo "${initCommands}" | sqlite3 -header -column ${dbPath} && sqlite3 -header -column ${dbPath} ".read ${filepath}" || echo "SQL toolchain not available. Please install sqlite3."`;
+    }
+      
     const commands: Record<SupportedLang, string> = {
       javascript: `node ${filepath}`,
       typescript: `ts-node ${filepath}`,
@@ -103,7 +116,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       rust: `/root/.cargo/bin/rustc -o ${filepath}.out ${filepath} && ${filepath}.out`,
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
       python: `python ${filepath}`,
-      sql: `sqlite3 ${path.join(dir, 'temp.db')} ".read ${filepath}" || echo "SQL toolchain not available. Please install sqlite3."`,
+      sql: `echo "SQL execution handled separately"`,
       html: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
       css: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
     };
