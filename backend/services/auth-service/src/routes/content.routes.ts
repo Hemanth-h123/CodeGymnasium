@@ -493,7 +493,7 @@ router.post('/code/execute', async (req, res) => {
         return res.status(200).json({ output: '', error: error.message || 'Python execution error', duration })
       })
       py.stdin.write(code)
-      if (input) py.stdin.write(``
+      if (input) py.stdin.write(`
 
 # input
 ${input}
@@ -826,7 +826,7 @@ ${input}
         return res.status(200).json({ output: out.trim(), error: 'SQL execution timed out', duration })
       }, 5000)
       
-      run.on('close', () => {
+      run.on('close', (code) => {
         clearTimeout(sqlTimeout)
         const duration = Date.now() - started
         const combined = (out + (err ? `\n${err}` : '')).trim()
