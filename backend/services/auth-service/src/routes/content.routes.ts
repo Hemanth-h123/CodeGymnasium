@@ -431,20 +431,25 @@ router.post('/code/execute', async (req, res) => {
   const started = Date.now()
   try {
     if (language === 'javascript') {
-      const logs: string[] = []
-      const sandbox = {
-        console: {
-          log: (...args: any[]) => {
-            logs.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
+      try {
+        const logs: string[] = []
+        const sandbox = {
+          console: {
+            log: (...args: any[]) => {
+              logs.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
+            },
           },
-        },
-        input,
+          input,
+        }
+        const context = createContext(sandbox)
+        const script = new Script(code)
+        script.runInContext(context, { timeout: 1000 })
+        const duration = Date.now() - started
+        return res.json({ output: logs.join('\n'), duration })
+      } catch (e: any) {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: '', error: e.message || 'JavaScript syntax error', duration })
       }
-      const context = createContext(sandbox)
-      const script = new Script(code)
-      script.runInContext(context, { timeout: 1000 })
-      const duration = Date.now() - started
-      return res.json({ output: logs.join('\n'), duration })
     }
     if (language === 'typescript') {
       try {
@@ -468,9 +473,13 @@ router.post('/code/execute', async (req, res) => {
         script.runInContext(context, { timeout: 1000 })
         const duration = Date.now() - started
         return res.status(200).json({ output: logs.join('\n'), duration })
-      } catch {
+      } catch (e: any) {
         const duration = Date.now() - started
-        return res.status(200).json({ output: 'TypeScript toolchain not available', duration })
+        if (e.message && e.message.includes('TypeScript')) {
+          return res.status(200).json({ output: 'TypeScript toolchain not available', duration })
+        } else {
+          return res.status(200).json({ output: '', error: e.message || 'TypeScript syntax error', duration })
+        }
       }
     }
     if (language === 'python') {
@@ -479,18 +488,25 @@ router.post('/code/execute', async (req, res) => {
       let err = ''
       py.stdout.on('data', (d) => (out += d.toString()))
       py.stderr.on('data', (d) => (err += d.toString()))
-      py.on('error', () => {})
+      py.on('error', (error) => {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: '', error: error.message || 'Python execution error', duration })
+      })
       py.stdin.write(code)
-      if (input) py.stdin.write(`
+      if (input) py.stdin.write(``
 
 # input
 ${input}
 `)
       py.stdin.end()
-      py.on('close', () => {
+      py.on('close', (code) => {
         const duration = Date.now() - started
+        // If the process exited with an error code and we don't have output, treat stderr as the main error
+        if (code !== 0 && !out.trim() && err.trim()) {
+          return res.status(200).json({ output: '', error: err.trim(), duration })
+        }
         const combined = (out + (err ? `\n${err}` : '')).trim()
-        return res.status(200).json({ output: combined, error: err, duration })
+        return res.status(200).json({ output: combined, error: code !== 0 ? err : undefined, duration })
       })
       return
     }
@@ -515,7 +531,7 @@ ${input}
           const duration = Date.now() - started
           const combined = cErr.trim()
           fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: combined, error: cErr, duration })
+          return res.status(200).json({ output: '', error: 'Compilation Error:\n' + combined, duration })
         }
         const j = spawn('java', ['-cp', tmp, className], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
         let out = ''
@@ -524,11 +540,15 @@ ${input}
         j.stderr.on('data', (d) => (err += d.toString()))
         if (input) j.stdin.write(input)
         j.stdin.end()
-        j.on('close', () => {
+        j.on('close', (runtimeCode) => {
           const duration = Date.now() - started
           const combined = (out + (err ? `\n${err}` : '')).trim()
           fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: combined, error: err, duration })
+          // If there's an error during runtime, show it as an error
+          if (runtimeCode !== 0 && err.trim()) {
+            return res.status(200).json({ output: '', error: 'Runtime Error:\n' + err.trim(), duration })
+          }
+          return res.status(200).json({ output: combined, error: runtimeCode !== 0 ? err : undefined, duration })
         })
       })
       return
@@ -552,7 +572,7 @@ ${input}
           const duration = Date.now() - started
           const combined = cErr.trim()
           fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: combined, error: cErr, duration })
+          return res.status(200).json({ output: '', error: 'C++ Compilation Error:\n' + combined, duration })
         }
         const run = spawn(bin, [], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
         let out = ''
@@ -561,11 +581,15 @@ ${input}
         run.stderr.on('data', (d) => (err += d.toString()))
         if (input) run.stdin.write(input)
         run.stdin.end()
-        run.on('close', () => {
+        run.on('close', (runtimeCode) => {
           const duration = Date.now() - started
           const combined = (out + (err ? `\n${err}` : '')).trim()
           fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: combined, error: err, duration })
+          // If there's an error during runtime, show it as an error
+          if (runtimeCode !== 0 && err.trim()) {
+            return res.status(200).json({ output: '', error: 'C++ Runtime Error:\n' + err.trim(), duration })
+          }
+          return res.status(200).json({ output: combined, error: runtimeCode !== 0 ? err : undefined, duration })
         })
       })
       return
@@ -609,7 +633,7 @@ ${input}
             const duration = Date.now() - started
             const combined = cErr.trim()
             fs.rm(tmp, { recursive: true, force: true }, () => {})
-            return res.status(200).json({ output: combined, error: cErr, duration })
+            return res.status(200).json({ output: '', error: 'C Compilation Error:\n' + combined, duration })
           }
           return
         }
@@ -635,13 +659,17 @@ ${input}
         if (input) run.stdin.write(input)
         run.stdin.end()
         
-        run.on('close', () => {
+        run.on('close', (runtimeCode) => {
           clearTimeout(execTimeout)
           if (!isResponseSent) {
             isResponseSent = true
             const duration = Date.now() - started
             const combined = (out + (err ? `\n${err}` : '')).trim()
             fs.rm(tmp, { recursive: true, force: true }, () => {})
+            // If there's an error during runtime, show it as an error
+            if (runtimeCode !== 0 && err.trim()) {
+              return res.status(200).json({ output: '', error: 'C Runtime Error:\n' + err.trim(), duration })
+            }
             return res.status(200).json({ output: combined, error: err || null, duration })
           }
         })
@@ -664,11 +692,15 @@ ${input}
       run.stderr.on('data', (d) => (err += d.toString()))
       if (input) run.stdin.write(input)
       run.stdin.end()
-      run.on('close', () => {
+      run.on('close', (code) => {
         const duration = Date.now() - started
         const combined = (out + (err ? `\n${err}` : '')).trim()
         fs.rm(tmp, { recursive: true, force: true }, () => {})
-        return res.status(200).json({ output: combined, error: err, duration })
+        // If there's an error during runtime, show it as an error
+        if (code !== 0 && err.trim()) {
+          return res.status(200).json({ output: '', error: 'Go Runtime Error:\n' + err.trim(), duration })
+        }
+        return res.status(200).json({ output: combined, error: code !== 0 ? err : undefined, duration })
       })
       return
     }
@@ -690,7 +722,7 @@ ${input}
           const duration = Date.now() - started
           const combined = cErr.trim()
           fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: combined, error: cErr, duration })
+          return res.status(200).json({ output: '', error: 'Rust Compilation Error:\n' + combined, duration })
         }
         const run = spawn(bin, [], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
         let out = ''
@@ -699,11 +731,15 @@ ${input}
         run.stderr.on('data', (d) => (err += d.toString()))
         if (input) run.stdin.write(input)
         run.stdin.end()
-        run.on('close', () => {
+        run.on('close', (runtimeCode) => {
           const duration = Date.now() - started
           const combined = (out + (err ? `\n${err}` : '')).trim()
           fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: combined, error: err, duration })
+          // If there's an error during runtime, show it as an error
+          if (runtimeCode !== 0 && err.trim()) {
+            return res.status(200).json({ output: '', error: 'Rust Runtime Error:\n' + err.trim(), duration })
+          }
+          return res.status(200).json({ output: combined, error: runtimeCode !== 0 ? err : undefined, duration })
         })
       })
       return
@@ -735,11 +771,15 @@ ${input}
       run.stderr.on('data', (d) => (err += d.toString()))
       if (input) run.stdin.write(input)
       run.stdin.end()
-      run.on('close', () => {
+      run.on('close', (code) => {
         const duration = Date.now() - started
         const combined = (out + (err ? `\n${err}` : '')).trim()
         fs.rm(tmp, { recursive: true, force: true }, () => {})
-        return res.status(200).json({ output: combined, error: err, duration })
+        // If there's an error during runtime, show it as an error
+        if (code !== 0 && err.trim()) {
+          return res.status(200).json({ output: '', error: 'C# Runtime Error:\n' + err.trim(), duration })
+        }
+        return res.status(200).json({ output: combined, error: code !== 0 ? err : undefined, duration })
       })
       return
     }
@@ -791,6 +831,10 @@ ${input}
         const duration = Date.now() - started
         const combined = (out + (err ? `\n${err}` : '')).trim()
         fs.rm(tmp, { recursive: true, force: true }, () => {})
+        // If there's an error during execution, show it as an error
+        if (code !== 0 && err.trim()) {
+          return res.status(200).json({ output: '', error: 'SQL Execution Error:\n' + err.trim(), duration })
+        }
         return res.status(200).json({ output: combined, error: err || null, duration })
       })
       return
