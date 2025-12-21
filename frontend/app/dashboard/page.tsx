@@ -1,27 +1,55 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Trophy, Target, Flame, Award, Book, Code, Calendar, TrendingUp } from 'lucide-react'
+import { getUserStats, getAchievementDetails } from '@/lib/user-stats'
+import UserStatsDemo from '@/components/demo/UserStatsDemo'
 
 export default function DashboardPage() {
-  // Mock data - TODO: Fetch from API
-  const stats = {
-    problemsSolved: 45,
-    currentStreak: 7,
-    totalScore: 2340,
-    rank: 156,
-  }
+  const [userStats, setUserStats] = useState({
+    problemsSolved: 0,
+    currentStreak: 0,
+    totalScore: 0,
+    rank: 0,
+    recentActivity: [] as any[],
+    achievements: [] as any[],
+  })
 
-  const recentActivity = [
-    { id: 1, type: 'problem', title: 'Two Sum', status: 'solved', date: '2 hours ago' },
-    { id: 2, type: 'course', title: 'Data Structures Basics', status: 'in_progress', date: '5 hours ago' },
-    { id: 3, type: 'challenge', title: 'Weekly Contest #45', status: 'participated', date: 'Yesterday' },
-  ]
-
-  const achievements = [
-    { id: 1, name: 'First Steps', icon: '🎯', desc: 'Solved first problem' },
-    { id: 2, name: 'Week Warrior', icon: '🔥', desc: '7 day streak' },
-    { id: 3, name: 'Fast Learner', icon: '⚡', desc: 'Completed 5 courses' },
-  ]
+  useEffect(() => {
+    // Load initial stats
+    const stats = getUserStats()
+    const achievements = getAchievementDetails(stats.achievements)
+    
+    setUserStats({
+      problemsSolved: stats.problemsSolved,
+      currentStreak: stats.currentStreak,
+      totalScore: stats.totalScore,
+      rank: stats.rank,
+      recentActivity: stats.recentActivity,
+      achievements: achievements,
+    })
+    
+    // Listen for stats updates
+    const handleStatsUpdate = (event: CustomEvent) => {
+      const stats = event.detail
+      const achievements = getAchievementDetails(stats.achievements)
+      
+      setUserStats({
+        problemsSolved: stats.problemsSolved,
+        currentStreak: stats.currentStreak,
+        totalScore: stats.totalScore,
+        rank: stats.rank,
+        recentActivity: stats.recentActivity,
+        achievements: achievements,
+      })
+    }
+    
+    window.addEventListener('userStatsUpdated', handleStatsUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('userStatsUpdated', handleStatsUpdate as EventListener)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -32,7 +60,9 @@ export default function DashboardPage() {
             Welcome back, Coder! 👋
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Keep up the great work! You're on a {stats.currentStreak} day streak.
+            {userStats.currentStreak > 0 
+              ? `Keep up the great work! You're on a ${userStats.currentStreak} day streak.`
+              : 'Start your coding journey today!'}
           </p>
         </div>
 
@@ -41,25 +71,25 @@ export default function DashboardPage() {
           <StatCard
             icon={<Code className="h-6 w-6" />}
             label="Problems Solved"
-            value={stats.problemsSolved}
+            value={userStats.problemsSolved}
             color="blue"
           />
           <StatCard
             icon={<Flame className="h-6 w-6" />}
             label="Current Streak"
-            value={`${stats.currentStreak} days`}
+            value={`${userStats.currentStreak} ${userStats.currentStreak === 1 ? 'day' : 'days'}`}
             color="orange"
           />
           <StatCard
             icon={<Trophy className="h-6 w-6" />}
             label="Total Score"
-            value={stats.totalScore}
+            value={userStats.totalScore.toLocaleString()}
             color="yellow"
           />
           <StatCard
             icon={<TrendingUp className="h-6 w-6" />}
             label="Global Rank"
-            value={`#${stats.rank}`}
+            value={userStats.rank > 0 ? `#${userStats.rank}` : 'Unranked'}
             color="green"
           />
         </div>
@@ -72,31 +102,38 @@ export default function DashboardPage() {
               Recent Activity
             </h2>
             <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 rounded-full ${
-                      activity.status === 'solved' ? 'bg-green-500' :
-                      activity.status === 'in_progress' ? 'bg-yellow-500' :
-                      'bg-blue-500'
-                    }`} />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {activity.title}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {activity.type}
-                      </p>
+              {userStats.recentActivity.length > 0 ? (
+                userStats.recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-2 h-2 rounded-full ${
+                        activity.status === 'solved' ? 'bg-green-500' :
+                        activity.status === 'in_progress' ? 'bg-yellow-500' :
+                        'bg-blue-500'
+                      }`} />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {activity.title}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {activity.type}
+                        </p>
+                      </div>
                     </div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {activity.date}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {activity.date}
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>No recent activity yet</p>
+                  <p className="text-sm mt-2">Start solving problems to see activity here</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -107,24 +144,31 @@ export default function DashboardPage() {
               Achievements
             </h2>
             <div className="space-y-4">
-              {achievements.map((achievement) => (
-                <div
-                  key={achievement.id}
-                  className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{achievement.icon}</span>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {achievement.name}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {achievement.desc}
-                      </p>
+              {userStats.achievements.length > 0 ? (
+                userStats.achievements.map((achievement) => (
+                  <div
+                    key={achievement.id}
+                    className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">{achievement.icon}</span>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {achievement.name}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {achievement.desc}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>No achievements yet</p>
+                  <p className="text-sm mt-2">Complete challenges to earn achievements</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -154,6 +198,9 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+      
+      {/* Demo Component - Remove in production */}
+      <UserStatsDemo />
     </div>
   )
 }
