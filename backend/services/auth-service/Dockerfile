@@ -8,6 +8,7 @@ RUN apt-get update && \
       g++ \
       golang-go \
       rustc cargo \
+      sqlite3 \
       wget \
       apt-transport-https \
       gnupg && \
