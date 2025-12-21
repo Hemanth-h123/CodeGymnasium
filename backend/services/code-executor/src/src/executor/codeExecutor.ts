@@ -117,8 +117,8 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
       python: `python3 ${filepath}`,
       sql: `echo "SQL execution handled separately"`,
-      html: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
-      css: `node -e "const fs=require('fs');console.log(fs.readFileSync(process.argv[1],'utf8'))" ${filepath}`,
+      html: `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== HTML OUTPUT ===\n'+content+'\n=== END HTML ===\nHTML code has been processed successfully.');" ${filepath}`,
+      css: `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== CSS OUTPUT ===\n'+content+'\n=== END CSS ===\nCSS code has been processed successfully.');" ${filepath}`,
     };
     return commands[language] || `node ${filepath}`;
   }
