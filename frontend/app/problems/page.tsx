@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, Circle, Filter, Search } from 'lucide-react'
 import { problemStore } from '@/lib/data-store'
+import { recordProblemSolved } from '@/lib/user-stats'
 
 export default function ProblemsPage() {
   const router = useRouter()
