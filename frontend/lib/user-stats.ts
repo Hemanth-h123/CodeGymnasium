@@ -252,6 +252,47 @@ export const getAchievementDetails = (achievementKeys: string[]): Array<{id: str
   })).filter(a => a.name) // Filter out any undefined achievements
 }
 
+// Get achievements with details
+export const getAchievementDetails = (achievementKeys: string[]): Array<{id: string, name: string, icon: string, desc: string}> => {
+  const achievementMap: Record<string, {name: string, icon: string, desc: string}> = {
+    'first-problem': {
+      name: 'First Steps',
+      icon: '🎯',
+      desc: 'Solved first problem'
+    },
+    'five-problems': {
+      name: 'Problem Solver',
+      icon: '⭐',
+      desc: 'Solved 5 problems'
+    },
+    'ten-problems': {
+      name: 'Code Warrior',
+      icon: '⚔️',
+      desc: 'Solved 10 problems'
+    },
+    'three-day-streak': {
+      name: 'Consistent Learner',
+      icon: '📅',
+      desc: '3 day streak'
+    },
+    'seven-day-streak': {
+      name: 'Week Warrior',
+      icon: '🔥',
+      desc: '7 day streak'
+    },
+    'thousand-points': {
+      name: 'Point Collector',
+      icon: '💎',
+      desc: 'Earned 1000 points'
+    }
+  }
+  
+  return achievementKeys.map(key => ({
+    id: key,
+    ...achievementMap[key]
+  })).filter(a => a.name) // Filter out any undefined achievements
+}
+
 // Reset user stats (for testing purposes)
 export const resetUserStats = (): void => {
   const resetStats: UserStats = {
