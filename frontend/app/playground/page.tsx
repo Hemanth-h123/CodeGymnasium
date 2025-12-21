@@ -56,7 +56,7 @@ export default function PlaygroundPage() {
     if (lang === 'csharp') return "using System;\nclass Program{ static void Main(){ Console.WriteLine(\"Hello, C#!\"); } }";
      if (lang === 'python') return "print('Hello, Python!')"
      if (lang === 'sql') return "SELECT 'Hello, SQL!';";
-     if (lang === 'c') return "#include <stdio.h>\nint main(){ printf(\"Hello, C!\n\"); return 0; }"
+     if (lang === 'c') return "#include <stdio.h>\nint main(){ \nprintf(\"Hello, C!"); \nreturn 0; }"
      if (lang === 'html') return "<!DOCTYPE html>\\n<html>\\n<body>\\n<h1>Hello, HTML!</h1>\\n</body>\\n</html>"
      if (lang === 'css') return "/* Hello, CSS! */\\nbody { color: #222; }"
     return code;
