@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Play, RotateCcw, CheckCircle, XCircle, Clock, AlertCircle, BookOpen, Flag } from 'lucide-react'
 import { problemStore, reportStore } from '@/lib/data-store'
+import { recordProblemSolved } from '@/lib/user-stats'
 
 export default function ProblemDetailPage({ params }: { params: { slug: string } }) {
   const router = useRouter()
@@ -81,6 +82,19 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
     return ''
   }
 
+  const getPointsForProblem = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
+      case 'easy':
+        return 50
+      case 'medium':
+        return 100
+      case 'hard':
+        return 200
+      default:
+        return 50
+    }
+  }
+
   const handleReport = () => {
     const userName = localStorage.getItem('userName') || 'Anonymous'
     const userId = localStorage.getItem('userId') || 'guest'
@@ -145,6 +159,19 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
       await handleRunCode()
     }
     const accepted = (testResults?.passed || 0) === (testResults?.total || 0)
+    
+    // If all tests pass, mark problem as solved and update user stats
+    if (accepted) {
+      // Mark problem as solved in the problem store
+      problemStore.markSolved(problem.id)
+      
+      // Record in user stats
+      recordProblemSolved(problem.title, getPointsForProblem(problem.difficulty))
+      
+      // Show success message
+      alert(`Congratulations! You solved "${problem.title}" and earned ${getPointsForProblem(problem.difficulty)} points!`)
+    }
+    
     setTestResults({ ...(testResults || { passed: 0, total: 0, cases: [] }), accepted })
     setIsRunning(false)
   }
