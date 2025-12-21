@@ -474,14 +474,18 @@ router.post('/code/execute', async (req, res) => {
       }
     }
     if (language === 'python') {
-      const py = spawn('python', ['-u', '-'], { stdio: ['pipe', 'pipe', 'pipe'] })
+      const py = spawn('python3', ['-u', '-'], { stdio: ['pipe', 'pipe', 'pipe'] })
       let out = ''
       let err = ''
       py.stdout.on('data', (d) => (out += d.toString()))
       py.stderr.on('data', (d) => (err += d.toString()))
       py.on('error', () => {})
       py.stdin.write(code)
-      if (input) py.stdin.write(`\n\n# input\n${input}\n`)
+      if (input) py.stdin.write(`
+
+# input
+${input}
+`)
       py.stdin.end()
       py.on('close', () => {
         const duration = Date.now() - started
