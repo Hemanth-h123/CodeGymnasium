@@ -474,33 +474,6 @@ router.post('/code/execute', async (req, res) => {
       }
     }
     if (language === 'python') {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const ts = require('typescript')
-        const transpiled = ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2019, removeComments: true } })
-        const logs: string[] = []
-        const sandbox = {
-          console: {
-            log: (...args: any[]) => {
-              logs.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
-            },
-          },
-          input,
-          module: { exports: {} },
-          exports: {},
-          require: undefined,
-        }
-        const context = createContext(sandbox)
-        const script = new Script(transpiled.outputText)
-        script.runInContext(context, { timeout: 1000 })
-        const duration = Date.now() - started
-        return res.status(200).json({ output: logs.join('\n'), duration })
-      } catch {
-        const duration = Date.now() - started
-        return res.status(200).json({ output: 'TypeScript toolchain not available', duration })
-      }
-    }
-    if (language === 'python') {
       const py = spawn('python', ['-u', '-'], { stdio: ['pipe', 'pipe', 'pipe'] })
       let out = ''
       let err = ''
