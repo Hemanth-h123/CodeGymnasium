@@ -444,9 +444,29 @@ router.post('/code/execute', async (req, res) => {
       const script = new Script(code)
       script.runInContext(context, { timeout: 1000 })
       const duration = Date.now() - started
-      return res.json({ output: logs.join('\n'), duration })
+      return res.status(200).json({ output: logs.join('\n'), duration })
     }
-    if (language === 'typescript') {
+    if (language === 'sql') {
+      const sqlite3Exists = !spawnSync('sqlite3', ['--version']).error
+      if (!sqlite3Exists) {
+        const duration = Date.now() - started
+        return res.status(200).json({ output: 'SQL toolchain not available', duration })
+      }
+      const sqlite = spawn('sqlite3', [':memory:', '-header', '-column'], { stdio: ['pipe', 'pipe', 'pipe'] })
+      let out = ''
+      let err = ''
+      sqlite.stdout.on('data', (d) => (out += d.toString()))
+      sqlite.stderr.on('data', (d) => (err += d.toString()))
+      sqlite.stdin.write(code)
+      sqlite.stdin.end()
+      sqlite.on('close', () => {
+        const duration = Date.now() - started
+        const combined = (out + (err ? `\n${err}` : '')).trim()
+        return res.status(200).json({ output: combined, error: err, duration })
+      })
+      return
+    }
+    if (language === 'python') {
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const ts = require('typescript')
@@ -477,40 +497,16 @@ router.post('/code/execute', async (req, res) => {
       const py = spawn('python', ['-u', '-'], { stdio: ['pipe', 'pipe', 'pipe'] })
       let out = ''
       let err = ''
-      let isResponseSent = false
-      
       py.stdout.on('data', (d) => (out += d.toString()))
       py.stderr.on('data', (d) => (err += d.toString()))
-      py.on('error', (error) => {
-        if (!isResponseSent) {
-          isResponseSent = true
-          const duration = Date.now() - started
-          return res.status(200).json({ output: '', error: error.message, duration })
-        }
-      })
-      
+      py.on('error', () => {})
       py.stdin.write(code)
-      if (input) py.stdin.write(`\n${input}`)
+      if (input) py.stdin.write(`\n\n# input\n${input}\n`)
       py.stdin.end()
-      
-      // Set a timeout to ensure we always send a response
-      const timeout = setTimeout(() => {
-        if (!isResponseSent) {
-          isResponseSent = true
-          py.kill()
-          const duration = Date.now() - started
-          return res.status(200).json({ output: out.trim(), error: 'Execution timed out', duration })
-        }
-      }, 5000)
-      
       py.on('close', () => {
-        clearTimeout(timeout)
-        if (!isResponseSent) {
-          isResponseSent = true
-          const duration = Date.now() - started
-          const combined = (out + (err ? `\n${err}` : '')).trim()
-          return res.status(200).json({ output: combined, error: err || null, duration })
-        }
+        const duration = Date.now() - started
+        const combined = (out + (err ? `\n${err}` : '')).trim()
+        return res.status(200).json({ output: combined, error: err, duration })
       })
       return
     }
@@ -590,84 +586,6 @@ router.post('/code/execute', async (req, res) => {
       })
       return
     }
-    if (language === 'c') {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-c-'))
-      const src = path.join(tmp, 'main.c')
-      const bin = path.join(tmp, process.platform === 'win32' ? 'a.exe' : 'a.out')
-      // Properly handle escaped newlines in the code
-      const formattedCode = code.replace(/\\n/g, '\n');
-      fs.writeFileSync(src, formattedCode)
-      const gccExists = !spawnSync('gcc', ['--version']).error
-      if (!gccExists) {
-        const duration = Date.now() - started
-        fs.rm(tmp, { recursive: true, force: true }, () => {})
-        return res.status(200).json({ output: 'C toolchain not available. Please install GCC.', duration })
-      }
-      const gcc = spawn('gcc', [src, '-O2', '-o', bin], { cwd: tmp })
-      let cErr = ''
-      let isResponseSent = false
-      
-      // Set a timeout for compilation
-      const compileTimeout = setTimeout(() => {
-        if (!isResponseSent) {
-          isResponseSent = true
-          gcc.kill()
-          const duration = Date.now() - started
-          fs.rm(tmp, { recursive: true, force: true }, () => {})
-          return res.status(200).json({ output: '', error: 'Compilation timed out', duration })
-        }
-      }, 10000)
-      
-      gcc.stderr.on('data', (d) => (cErr += d.toString()))
-      gcc.on('close', (codeExit) => {
-        clearTimeout(compileTimeout)
-        if (isResponseSent) return;
-        
-        if (codeExit !== 0) {
-          if (!isResponseSent) {
-            isResponseSent = true
-            const duration = Date.now() - started
-            const combined = cErr.trim()
-            fs.rm(tmp, { recursive: true, force: true }, () => {})
-            return res.status(200).json({ output: combined, error: cErr, duration })
-          }
-          return
-        }
-        
-        const run = spawn(bin, [], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
-        let out = ''
-        let err = ''
-        
-        // Set a timeout for execution
-        const execTimeout = setTimeout(() => {
-          if (!isResponseSent) {
-            isResponseSent = true
-            run.kill()
-            const duration = Date.now() - started
-            const combined = (out + (err ? `\n${err}` : '')).trim()
-            fs.rm(tmp, { recursive: true, force: true }, () => {})
-            return res.status(200).json({ output: combined, error: 'Execution timed out', duration })
-          }
-        }, 5000)
-        
-        run.stdout.on('data', (d) => (out += d.toString()))
-        run.stderr.on('data', (d) => (err += d.toString()))
-        if (input) run.stdin.write(input)
-        run.stdin.end()
-        
-        run.on('close', () => {
-          clearTimeout(execTimeout)
-          if (!isResponseSent) {
-            isResponseSent = true
-            const duration = Date.now() - started
-            const combined = (out + (err ? `\n${err}` : '')).trim()
-            fs.rm(tmp, { recursive: true, force: true }, () => {})
-            return res.status(200).json({ output: combined, error: err || null, duration })
-          }
-        })
-      })
-      return
-    }
     if (language === 'go') {
       const goOk = !spawnSync('go', ['version']).error
       if (!goOk) {
@@ -737,15 +655,7 @@ router.post('/code/execute', async (req, res) => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-cs-'))
       const proj = path.join(tmp, 'cg.csproj')
       const prog = path.join(tmp, 'Program.cs')
-      const csproj = `<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-</Project>`
+      const csproj = `<?xml version="1.0" encoding="utf-8"?>\n<Project Sdk="Microsoft.NET.Sdk">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net8.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n  </PropertyGroup>\n</Project>`
       fs.writeFileSync(proj, csproj)
       fs.writeFileSync(prog, code)
       const run = spawn('dotnet', ['run'], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
@@ -762,62 +672,6 @@ router.post('/code/execute', async (req, res) => {
         return res.status(200).json({ output: combined, error: err, duration })
       })
       return
-    }
-    if (language === 'sql') {
-      // Try to use sqlite3 first, fallback to node-sqlite3 if available
-      const sqliteOk = !spawnSync('sqlite3', ['--version']).error
-      if (!sqliteOk) {
-        const duration = Date.now() - started
-        return res.status(200).json({ output: 'SQL toolchain not available. Please install sqlite3.', duration })
-      }
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-sql-'))
-      const db = path.join(tmp, 'temp.db')
-      const script = path.join(tmp, 'script.sql')
-      // Properly handle escaped newlines in the SQL code
-      const formattedCode = code.replace(/\\n/g, '\n');
-      fs.writeFileSync(script, formattedCode)
-      
-      // Create the database file first
-      fs.closeSync(fs.openSync(db, 'w'))
-      
-      // Initialize SQLite with better settings for output
-      const initCommands = [
-        '.mode column',
-        '.headers on',
-        '.nullvalue NULL'
-      ];
-      
-      // Write initialization commands to a file
-      const initFile = path.join(tmp, 'init.sql');
-      fs.writeFileSync(initFile, initCommands.join('\n') + '\n');
-      
-      // Execute the SQL script with better output formatting
-      const run = spawn('sqlite3', [db, '.read', initFile, '.read', script], { cwd: tmp, stdio: ['pipe', 'pipe', 'pipe'] })
-      let out = ''
-      let err = ''
-      run.stdout.on('data', (d) => (out += d.toString()))
-      run.stderr.on('data', (d) => (err += d.toString()))
-      
-      // Set a timeout to ensure we always send a response
-      const sqlTimeout = setTimeout(() => {
-        run.kill()
-        const duration = Date.now() - started
-        fs.rm(tmp, { recursive: true, force: true }, () => {})
-        return res.status(200).json({ output: out.trim(), error: 'SQL execution timed out', duration })
-      }, 5000)
-      
-      run.on('close', () => {
-        clearTimeout(sqlTimeout)
-        const duration = Date.now() - started
-        const combined = (out + (err ? `\n${err}` : '')).trim()
-        fs.rm(tmp, { recursive: true, force: true }, () => {})
-        return res.status(200).json({ output: combined, error: err || null, duration })
-      })
-      return
-    }
-    if (language === 'html' || language === 'css') {
-      const duration = Date.now() - started
-      return res.status(200).json({ output: String(code || '').trim(), duration })
     }
     const duration = Date.now() - started
     return res.status(200).json({ output: 'Language not supported', duration })
