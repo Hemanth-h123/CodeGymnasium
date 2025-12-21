@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Trophy, Target, Flame, Award, Book, Code, Calendar, TrendingUp } from 'lucide-react'
 import { getUserStats, getAchievementDetails } from '@/lib/user-stats'
-import UserStatsDemo from '@/components/demo/UserStatsDemo'
 
 export default function DashboardPage() {
   const [userStats, setUserStats] = useState({
@@ -198,9 +197,6 @@ export default function DashboardPage() {
           />
         </div>
       </div>
-      
-      {/* Demo Component - Remove in production */}
-      <UserStatsDemo />
     </div>
   )
 }
