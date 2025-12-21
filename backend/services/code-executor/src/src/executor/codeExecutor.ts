@@ -36,14 +36,30 @@ export class CodeExecutor {
       const command = this.getExecutionCommand(language, filepath);
 
       // Execute code with timeout
-      const output = execSync(command,  { timeout, encoding: 'utf8', stdio: 'pipe' });
+      let output = '';
+      let stderr = '';
+      try {
+        output = execSync(command, { timeout, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+      } catch (execError: any) {
+        // Capture both stdout and stderr from the execution error
+        output = execError.stdout ? String(execError.stdout) : '';
+        stderr = execError.stderr ? String(execError.stderr) : (execError.message || '');
+        
+        // If we have stderr, treat it as an error
+        if (stderr.trim()) {
+          throw new Error(stderr);
+        }
+        
+        // If we only have stdout, continue with that as output
+      }
+      
       const executionTime = Date.now() - startTime;
 
       // Cleanup
       this.cleanup(filepath);
 
       return {
-        output: output.trim(),
+        output: (output + (stderr ? '\n' + stderr : '')).trim(),
         executionTime,
       };
     } catch (error: any) {
