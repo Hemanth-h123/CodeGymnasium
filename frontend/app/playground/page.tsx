@@ -49,13 +49,16 @@ export default function PlaygroundPage() {
   const getTemplate = (lang: string) => {
     if (lang === 'javascript') return "// JavaScript\nfunction main() {\n  console.log('Hello, JavaScript!')\n}\nmain()";
     if (lang === 'typescript') return "// TypeScript\nfunction main(msg: string): void {\n  console.log(msg)\n}\nmain('Hello, TypeScript!')";
-    if (lang === 'python') return "# Python\nprint('Hello, Python!')";
-    if (lang === 'java') return "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}";
+   if (lang === 'java') return "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}";
     if (lang === 'cpp') return "#include <iostream>\nint main(){ std::cout << \"Hello, C++!\" << std::endl; return 0; }";
     if (lang === 'go') return "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello, Go!\") }";
     if (lang === 'rust') return "fn main(){ println!(\"Hello, Rust!\"); }";
     if (lang === 'csharp') return "using System;\nclass Program{ static void Main(){ Console.WriteLine(\"Hello, C#!\"); } }";
-    if (lang === 'sql') return "-- Create a table\nCREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);\n-- Insert data\nINSERT INTO users (name) VALUES ('Alice'), ('Bob');\n-- Query data\nSELECT * FROM users;";
+     if (lang === 'python') return "def solution():\n    return 'Hello, Python!'\n\nprint(solution())"
+     if (lang === 'sql') return "SELECT 'Hello, SQL!';";
+     if (lang === 'c') return "#include <stdio.h>\\nint main(){ printf(\\\"Hello, C!\\\\n\\\"); return 0; }"
+     if (lang === 'html') return "<!DOCTYPE html>\\n<html>\\n<body>\\n<h1>Hello, HTML!</h1>\\n</body>\\n</html>"
+     if (lang === 'css') return "/* Hello, CSS! */\\nbody { color: #222; }"
     return code;
   }
 
@@ -88,7 +91,9 @@ export default function PlaygroundPage() {
       })
       const data = await res.json()
       const header = `Executing ${language} code...\n\n`
-      const body = data.output || ''
+      const rawOut = String(data.output || '').trim()
+      const rawErr = String(data.error || '').trim()
+      const body = rawOut.length > 0 ? rawOut : (rawErr.length > 0 ? rawErr : 'No output produced')
       const footer = `\n\nExecution completed in ${data.duration ?? 0}ms`
       setOutput(header + body + footer)
 
@@ -102,7 +107,7 @@ export default function PlaygroundPage() {
               body: JSON.stringify({ language, code, input: tc.input })
             })
             const d = await r.json()
-            const out = String(d.output || '')
+            const out = String(d.output || d.error || '')
             const passed = tc.expectedOutput ? out.trim() === tc.expectedOutput.trim() : out.length > 0
             results.push({ id: tc.id, passed, output: out })
           } catch {
@@ -190,12 +195,16 @@ export default function PlaygroundPage() {
               >
                 <option value="javascript">JavaScript</option>
                 <option value="typescript">TypeScript</option>
-                <option value="python">Python</option>
-                <option value="java">Java</option>
+               <option value="java">Java</option>
                 <option value="cpp">C++</option>
                 <option value="go">Go</option>
                 <option value="rust">Rust</option>
                 <option value="csharp">C#</option>
+                 <option value="python">Python</option>
+                 <option value="sql">SQL</option>
+                 <option value="c">C</option>
+                 <option value="html">HTML</option>
+                 <option value="css">CSS</option>
               </select>
             </div>
 
