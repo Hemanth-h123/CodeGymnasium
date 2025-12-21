@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, Calendar, Award, Code, Trophy, TrendingUp, Edit2, Save } from 'lucide-react'
+import { getUserStats, getAchievementDetails } from '@/lib/user-stats'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -45,14 +46,48 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
-  // Mock stats
-  const stats = {
+  const [userStats, setUserStats] = useState({
     problemsSolved: 0,
     currentStreak: 0,
     totalScore: 0,
-    rank: 'Beginner',
+    rank: 0,
     joinedDate: 'January 2024',
-  }
+    recentActivity: [] as any[],
+  })
+
+  useEffect(() => {
+    // Load user stats
+    const stats = getUserStats()
+    
+    setUserStats({
+      problemsSolved: stats.problemsSolved,
+      currentStreak: stats.currentStreak,
+      totalScore: stats.totalScore,
+      rank: stats.rank,
+      joinedDate: 'January 2024',
+      recentActivity: stats.recentActivity,
+    })
+    
+    // Listen for stats updates
+    const handleStatsUpdate = (event: CustomEvent) => {
+      const stats = event.detail
+      
+      setUserStats({
+        problemsSolved: stats.problemsSolved,
+        currentStreak: stats.currentStreak,
+        totalScore: stats.totalScore,
+        rank: stats.rank,
+        joinedDate: 'January 2024',
+        recentActivity: stats.recentActivity,
+      })
+    }
+    
+    window.addEventListener('userStatsUpdated', handleStatsUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('userStatsUpdated', handleStatsUpdate as EventListener)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -83,7 +118,7 @@ export default function ProfilePage() {
                 </p>
                 <p className="text-gray-600 dark:text-gray-400 flex items-center mt-1">
                   <Calendar className="h-4 w-4 mr-2" />
-                  Joined {stats.joinedDate}
+                  Joined {userStats.joinedDate}
                 </p>
               </div>
             </div>
@@ -156,7 +191,7 @@ export default function ProfilePage() {
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Problems Solved</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.problemsSolved}
+                  {userStats.problemsSolved}
                 </p>
               </div>
               <Code className="h-10 w-10 text-blue-600" />
@@ -168,7 +203,7 @@ export default function ProfilePage() {
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Current Streak</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.currentStreak}
+                  {userStats.currentStreak}
                 </p>
               </div>
               <TrendingUp className="h-10 w-10 text-green-600" />
@@ -180,7 +215,7 @@ export default function ProfilePage() {
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Total Score</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.totalScore.toLocaleString()}
+                  {userStats.totalScore.toLocaleString()}
                 </p>
               </div>
               <Trophy className="h-10 w-10 text-yellow-600" />
@@ -192,7 +227,7 @@ export default function ProfilePage() {
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Rank</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.rank}
+                  {userStats.rank > 0 ? `#${userStats.rank}` : 'Beginner'}
                 </p>
               </div>
               <Award className="h-10 w-10 text-purple-600" />
@@ -206,28 +241,34 @@ export default function ProfilePage() {
             Recent Activity
           </h2>
           <div className="space-y-4">
-            {[
-            ].map((activity, index) => (
-              <div key={index} className="flex items-center justify-between py-3 border-b dark:border-gray-700 last:border-0">
-                <div className="flex items-center space-x-4">
-                  <div className={`px-2 py-1 rounded text-xs font-semibold ${
-                    activity.difficulty === 'Easy' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    activity.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                  }`}>
-                    {activity.difficulty}
+            {userStats.recentActivity && userStats.recentActivity.length > 0 ? (
+              userStats.recentActivity.map((activity, index) => (
+                <div key={activity.id || index} className="flex items-center justify-between py-3 border-b dark:border-gray-700 last:border-0">
+                  <div className="flex items-center space-x-4">
+                    <div className={`px-2 py-1 rounded text-xs font-semibold ${
+                      activity.status === 'solved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      activity.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    }`}>
+                      {activity.status.charAt(0).toUpperCase() + activity.status.slice(1).replace('_', ' ')}
+                    </div>
+                    <div>
+                      <p className="text-gray-900 dark:text-white">
+                        <span className="font-semibold">{activity.type}</span> - {activity.title}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-900 dark:text-white">
-                      <span className="font-semibold">{activity.action}</span> - {activity.item}
-                    </p>
-                  </div>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {activity.date}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {activity.time}
-                </span>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p>No recent activity yet</p>
+                <p className="text-sm mt-2">Start solving problems to see activity here</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
