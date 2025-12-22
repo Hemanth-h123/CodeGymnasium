@@ -839,26 +839,15 @@ ${input}
       })
       return
     }
-    if (language === 'html') {
+    if (language === 'html' || language === 'css' || language === 'html/css') {
       const duration = Date.now() - started
-      const output = `=== HTML CODE EXECUTION ===
+      const output = `=== HTML/CSS CODE EXECUTION ===
 
 ${String(code || '').trim()}
 
-=== HTML RENDERING INFO ===
-HTML code has been processed. In a browser environment, this would render as a webpage.
+=== RENDERING INFO ===
+HTML/CSS code has been processed. In a browser environment, this would render as a webpage.
 To see the rendered output, save this code to an .html file and open it in a browser.`
-      return res.status(200).json({ output, duration })
-    }
-    if (language === 'css') {
-      const duration = Date.now() - started
-      const output = `=== CSS CODE EXECUTION ===
-
-${String(code || '').trim()}
-
-=== CSS VALIDATION INFO ===
-CSS code has been processed. In a browser environment, this would style HTML elements.
-To see the effect, link this CSS file to an HTML document.`
       return res.status(200).json({ output, duration })
     }
     const duration = Date.now() - started
