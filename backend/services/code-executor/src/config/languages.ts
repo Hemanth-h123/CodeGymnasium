@@ -22,33 +22,6 @@ int main(){
   return 0;
 }`
   },
-  html: {
-    name: 'HTML',
-    filename: 'index.html',
-    command: 'print',
-    timeout: 3000,
-    template: `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Hello</title>
-</head>
-<body>
-  <h1>Hello, World!</h1>
-</body>
-</html>`
-  },
-  css: {
-    name: 'CSS',
-    filename: 'styles.css',
-    command: 'print',
-    timeout: 3000,
-    template: `/* Hello, World! */
-body {
-  font-family: sans-serif;
-  color: #222;
-}`
-  },
   python: {
     name: 'Python',
     filename: 'solution.py',
