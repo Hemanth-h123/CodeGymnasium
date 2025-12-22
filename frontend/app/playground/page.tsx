@@ -21,6 +21,8 @@ export default function PlaygroundPage() {
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [testResults, setTestResults] = useState<{ id: string; passed: boolean; output: string }[]>([])
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewContent, setPreviewContent] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -95,6 +97,11 @@ export default function PlaygroundPage() {
       const body = rawOut.length > 0 ? rawOut : (rawErr.length > 0 ? rawErr : 'No output produced')
       const footer = `\n\nExecution completed in ${data.duration ?? 0}ms`
       setOutput(header + body + footer)
+
+      if (language === 'html/css') {
+        setPreviewContent(code)
+        setShowPreview(true)
+      }
 
       if (testCases.some(tc => tc.input || tc.expectedOutput)) {
         const results: { id: string; passed: boolean; output: string }[] = []
@@ -356,6 +363,36 @@ export default function PlaygroundPage() {
           </div>
         </div>
       </div>
+
+      {/* HTML Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-4xl h-[80vh] rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-black/5">
+            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"/>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"/>
+                <div className="w-3 h-3 rounded-full bg-green-500"/>
+                <h3 className="ml-4 text-sm font-semibold text-gray-700 dark:text-gray-200">HTML Preview</h3>
+              </div>
+              <button 
+                onClick={() => setShowPreview(false)}
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-500 dark:text-gray-400"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 bg-white relative">
+              <iframe
+                srcDoc={previewContent}
+                className="w-full h-full border-none"
+                title="Preview"
+                sandbox="allow-scripts"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
