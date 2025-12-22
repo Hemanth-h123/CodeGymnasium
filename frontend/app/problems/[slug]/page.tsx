@@ -77,8 +77,7 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
     if (lang === 'go') return "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello, Go!\") }"
     if (lang === 'rust') return "fn main(){ println!(\"Hello, Rust!\"); }"
     if (lang === 'csharp') return "using System;\nclass Solution{ static void Main(){ Console.WriteLine(\"Hello, C#!\"); } }"
-    if (lang === 'html') return "<!DOCTYPE html>\n<html>\n  <body>\n    <h1>Hello, HTML!</h1>\n  </body>\n</html>"
-    if (lang === 'css') return "/* Hello, CSS! */\nbody { color: #222; }"
+    if (lang === 'html/css') return "<!DOCTYPE html>\n<html>\n  <head>\n    <style>\n      body { color: #222; font-family: Arial, sans-serif; }\n    </style>\n  </head>\n  <body>\n    <h1>Hello, HTML/CSS!</h1>\n    <p>This is a combined HTML/CSS example.</p>\n  </body>\n</html>"
     return ''
   }
 
@@ -231,7 +230,7 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
   // Parse examples and constraints from strings
   const examples = problem.examples ? problem.examples.split('\n\n').filter(Boolean) : []
   const constraints = problem.constraints ? problem.constraints.split('\n').filter(Boolean) : []
-  const defaultLanguages = ['javascript','typescript','python','java','cpp','c','go','rust','csharp','sql','html','css']
+  const defaultLanguages = ['javascript','typescript','python','java','cpp','c','go','rust','csharp','sql','html/css']
   const supportedLanguages = (problem.supportedLanguages && problem.supportedLanguages.length > 0) ? problem.supportedLanguages : defaultLanguages
 
   return (
