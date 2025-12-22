@@ -142,6 +142,29 @@ class Solution {
   }
 }`
   },
+  'html/css': {
+    name: 'HTML/CSS',
+    filename: 'index.html',
+    command: 'print',
+    timeout: 3000,
+    template: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Hello</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello, World!</h1>
+  <p>This is a combined HTML/CSS example.</p>
+</body>
+</html>`
+  },
 };
 
 export type SupportedLanguage = keyof typeof LANGUAGE_SUPPORT;
