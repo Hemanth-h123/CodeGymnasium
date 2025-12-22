@@ -49,7 +49,8 @@ export default function NewChallengePage() {
     { value: 'go', label: 'Go' },
     { value: 'rust', label: 'Rust' },
     { value: 'typescript', label: 'TypeScript' },
-    { value: 'csharp', label: 'C#' }
+    { value: 'csharp', label: 'C#' },
+    { value: 'html/css', label: 'HTML/CSS' }
   ]
 
   useEffect(() => {
