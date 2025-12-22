@@ -841,13 +841,50 @@ ${input}
     }
     if (language === 'html' || language === 'css' || language === 'html/css') {
       const duration = Date.now() - started
-      const output = `=== HTML/CSS CODE EXECUTION ===
+      const codeContent = String(code || '').trim()
+      
+      // Parse the HTML to extract key information for simulation
+      let title: string = 'Untitled Page'
+      let headings: string[] = []
+      let paragraphs: string[] = []
+      let hasStyle: boolean = false
+      
+      if (codeContent) {
+        // Simple parsing to extract basic info
+        const titleMatch = codeContent.match(/<title[^>]*>([^<]*)<\/title>/i)
+        if (titleMatch) title = titleMatch[1]
+        
+        const headingMatches = codeContent.match(/<h[1-6][^>]*>([^<]*)<\/h[1-6]>/gi)
+        if (headingMatches) {
+          headings = headingMatches.map(h => {
+            const tagMatch = h.match(/<h[1-6]/i);
+            const tag = tagMatch ? tagMatch[0].toUpperCase() : 'H';
+            const content = h.replace(/<[^>]*>/g, '');
+            return `${tag}: ${content}`;
+          });
+        }
+        
+        const paragraphMatches = codeContent.match(/<p[^>]*>([^<]*)<\/p>/gi);
+        if (paragraphMatches) {
+          paragraphs = paragraphMatches.map(p => p.replace(/<[^>]*>/g, ''));
+        }
+        
+        hasStyle = /<style/i.test(codeContent) || /style=/i.test(codeContent);
+      }
+      
+      const output = `=== HTML/CSS SIMULATED OUTPUT ===
 
-${String(code || '').trim()}
+📄 Page Title: ${title}
+${headings.length > 0 ? '\n📝 Headings:\n' + headings.join('\n') : ''}
+${paragraphs.length > 0 ? '\n📄 Paragraphs:\n' + paragraphs.map((p, i) => `${i + 1}. ${p}`).join('\n') : ''}
+${hasStyle ? '\n🎨 Contains CSS styling' : '\n⬜ No CSS styling detected'}
+
+=== RAW HTML CODE ===
+${codeContent}
 
 === RENDERING INFO ===
-HTML/CSS code has been processed. In a browser environment, this would render as a webpage.
-To see the rendered output, save this code to an .html file and open it in a browser.`
+In a browser environment, this would render as a webpage.
+To see the actual rendered output, save this code to an .html file and open it in a browser.`
       return res.status(200).json({ output, duration })
     }
     const duration = Date.now() - started
