@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { SupportedLanguage } from '../../config/languages';
-type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp' | 'python' | 'sql' | 'c' | 'html' | 'css';
+type SupportedLang = 'javascript' | 'typescript' | 'java' | 'cpp' | 'go' | 'rust' | 'csharp' | 'python' | 'sql' | 'c' | 'html/css';
 
 export interface ExecutionResult {
   output: string;
@@ -91,7 +91,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
     const extensions: Record<SupportedLang, string> = {
       javascript: 'js',
       typescript: 'ts',
-     java: 'java',
+      java: 'java',
       cpp: 'cpp',
       c: 'c',
       go: 'go',
@@ -99,8 +99,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       csharp: 'cs',
       python: 'py',
       sql: 'sql',
-      html: 'html',
-      css: 'css',
+      'html/css': 'html',
     };
     return extensions[language] || 'txt';
   }
@@ -133,8 +132,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
       python: `python3 ${filepath}`,
       sql: `echo "SQL execution handled separately"`,
-      html: `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== HTML OUTPUT ===\n'+content+'\n=== END HTML ===\nHTML code has been processed successfully.');" ${filepath}`,
-      css: `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== CSS OUTPUT ===\n'+content+'\n=== END CSS ===\nCSS code has been processed successfully.');" ${filepath}`,
+      'html/css': `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== HTML/CSS OUTPUT ===\n'+content+'\n=== END HTML/CSS ===\nHTML/CSS code has been processed. To see the rendered output, save this code to an .html file and open it in a browser.');" ${filepath}`,
     };
     return commands[language] || `node ${filepath}`;
   }
