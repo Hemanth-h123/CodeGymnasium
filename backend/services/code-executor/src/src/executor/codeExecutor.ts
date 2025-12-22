@@ -132,7 +132,7 @@ output: error.stdout ? String(error.stdout).trim() : '', error: errorMsg.trim(),
       csharp: `/usr/bin/csc ${filepath} && ${filepath}.exe`,
       python: `python3 ${filepath}`,
       sql: `echo "SQL execution handled separately"`,
-      'html/css': `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== HTML/CSS OUTPUT ===\n'+content+'\n=== END HTML/CSS ===\nHTML/CSS code has been processed. To see the rendered output, save this code to an .html file and open it in a browser.');" ${filepath}`,
+      'html/css': `node -e "const fs=require('fs');const content=fs.readFileSync(process.argv[1],'utf8');console.log('=== HTML/CSS SIMULATED OUTPUT ===\n\n📄 Page Title: Untitled Page\n\n=== RAW HTML CODE ===\n'+content+'\n\n=== RENDERING INFO ===\nIn a browser environment, this would render as a webpage.\nTo see the actual rendered output, save this code to an .html file and open it in a browser.');" ${filepath}`,
     };
     return commands[language] || `node ${filepath}`;
   }
