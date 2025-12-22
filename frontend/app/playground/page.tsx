@@ -57,8 +57,7 @@ export default function PlaygroundPage() {
      if (lang === 'python') return "def solution():\n    return 'Hello, Python!'\n\nprint(solution())"
      if (lang === 'sql') return "SELECT 'Hello, SQL!';";
      if (lang === 'c') return "#include <stdio.h>\\nint main(){ printf(\\\"Hello, C!\\\\n\\\"); return 0; }";
-     if (lang === 'html') return "<!DOCTYPE html>\\n<html>\\n<body>\\n<h1>Hello, HTML!</h1>\\n</body>\\n</html>";
-     if (lang === 'css') return "/* Hello, CSS! */\\nbody { color: #222; }"
+     if (lang === 'html/css') return "<!DOCTYPE html>\n<html>\n  <head>\n    <style>\n      body { color: #222; font-family: Arial, sans-serif; }\n    </style>\n  </head>\n  <body>\n    <h1>Hello, HTML/CSS!</h1>\n    <p>This is a combined HTML/CSS example.</p>\n  </body>\n</html>"
     return code;
   }
 
@@ -203,8 +202,7 @@ export default function PlaygroundPage() {
                  <option value="python">Python</option>
                  <option value="sql">SQL</option>
                  <option value="c">C</option>
-                 <option value="html">HTML</option>
-                 <option value="css">CSS</option>
+                 <option value="html/css">HTML/CSS</option>
               </select>
             </div>
 
