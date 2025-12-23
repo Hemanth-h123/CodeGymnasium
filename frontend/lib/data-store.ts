@@ -700,6 +700,19 @@ export const enrollmentStore = {
 export const reportStore = {
   getAll: (): Report[] => {
     if (typeof window === 'undefined') return []
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+    if (base) {
+      try {
+        const xhr = new XMLHttpRequest()
+        xhr.open('GET', `${base}/api/content/reports`, false)
+        xhr.send(null)
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText)
+          localStorage.setItem('reports', JSON.stringify(data))
+          return data
+        }
+      } catch {}
+    }
     const stored = localStorage.getItem('reports')
     return stored ? JSON.parse(stored) : []
   },
@@ -715,6 +728,18 @@ export const reportStore = {
     reports.push(newReport)
     localStorage.setItem('reports', JSON.stringify(reports))
     window.dispatchEvent(new Event('dataChange'))
+    
+    // Send to API
+    const base = process.env.NEXT_PUBLIC_API_URL
+    if (base) {
+      try {
+        void fetch(`${base}/api/content/reports`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newReport)
+        })
+      } catch {}
+    }
     return newReport
   },
 
@@ -725,6 +750,18 @@ export const reportStore = {
       reports[index].status = status
       localStorage.setItem('reports', JSON.stringify(reports))
       window.dispatchEvent(new Event('dataChange'))
+      
+      // Update on API
+      const base = process.env.NEXT_PUBLIC_API_URL
+      if (base) {
+        try {
+          void fetch(`${base}/api/content/reports/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          })
+        } catch {}
+      }
       return true
     }
     return false
@@ -736,12 +773,32 @@ export const reportStore = {
     if (filtered.length < reports.length) {
       localStorage.setItem('reports', JSON.stringify(filtered))
       window.dispatchEvent(new Event('dataChange'))
+      
+      // Delete from API
+      const base = process.env.NEXT_PUBLIC_API_URL
+      if (base) {
+        try {
+          void fetch(`${base}/api/content/reports/${id}`, { method: 'DELETE' })
+        } catch {}
+      }
       return true
     }
     return false
   },
 
   getByType: (type: 'course' | 'problem' | 'challenge'): Report[] => {
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+    if (base) {
+      try {
+        const xhr = new XMLHttpRequest()
+        xhr.open('GET', `${base}/api/content/reports/${type}`, false)
+        xhr.send(null)
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText)
+          return data
+        }
+      } catch {}
+    }
     return reportStore.getAll().filter(r => r.type === type)
   },
 
