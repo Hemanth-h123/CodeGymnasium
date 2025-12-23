@@ -127,29 +127,8 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
     )
   }
 
-  // Show coming soon if no description
+  // If no description, still show the challenge interface with default content
   const hasContent = challenge.description
-  
-  if (!hasContent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center py-12">
-          <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{challenge.title}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">Content Coming Soon</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-            This challenge is being prepared. Check back later!
-          </p>
-          <Link
-            href="/challenges"
-            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Back to Challenges
-          </Link>
-        </div>
-      </div>
-    )
-  }
 
   // Parse examples and constraints from strings
   const examples = challenge.examples ? challenge.examples.split('\n\n').filter(Boolean) : []
@@ -246,16 +225,16 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
                       Challenge Description
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                      {challenge.description}
+                      {challenge.description || 'Challenge description coming soon. This challenge is being prepared.'}
                     </p>
                   </div>
 
-                  {examples.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Examples
-                      </h3>
-                      {examples.map((example: string, index: number) => (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Examples
+                    </h3>
+                    {examples.length > 0 ? (
+                      examples.map((example: string, index: number) => (
                         <div key={index} className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <p className="font-medium text-gray-900 dark:text-white mb-2">
                             Example {index + 1}:
@@ -264,33 +243,41 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
                             {example}
                           </p>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      ))
+                    ) : (
+                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          No examples provided yet.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                  {constraints.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Constraints
-                      </h3>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Constraints
+                    </h3>
+                    {constraints.length > 0 ? (
                       <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
                         {constraints.map((constraint: string, index: number) => (
                           <li key={index}>{constraint}</li>
                         ))}
                       </ul>
-                    </div>
-                  )}
-
-                  {challenge.hints && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Hints
-                      </h3>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                        {challenge.hints}
+                    ) : (
+                      <p className="text-gray-700 dark:text-gray-300">
+                        No constraints specified.
                       </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Hints
+                    </h3>
+                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                      {challenge.hints || 'No hints provided.'}
+                    </p>
+                  </div>
                 </div>
               )}
 
