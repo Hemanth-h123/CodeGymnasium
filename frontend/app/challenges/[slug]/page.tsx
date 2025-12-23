@@ -141,7 +141,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
       <div className="h-[calc(100vh-64px)] flex flex-col">
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel - Challenge Description */}
-          <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+          <div className={`${!hasContent ? 'w-full' : 'w-1/2'} border-r ${!hasContent ? '' : 'border-gray-200 dark:border-gray-700'} overflow-y-auto`}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -224,60 +224,83 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       Challenge Description
                     </h3>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                      {challenge.description || 'Challenge description coming soon. This challenge is being prepared.'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Examples
-                    </h3>
-                    {examples.length > 0 ? (
-                      examples.map((example: string, index: number) => (
-                        <div key={index} className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="font-medium text-gray-900 dark:text-white mb-2">
-                            Example {index + 1}:
-                          </p>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                            {example}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                          No examples provided yet.
+                    {!hasContent ? (
+                      <div className="text-center py-8">
+                        <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{challenge.title}</h1>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">Content Coming Soon</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+                          This challenge is being prepared. Check back later!
                         </p>
                       </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      Constraints
-                    </h3>
-                    {constraints.length > 0 ? (
-                      <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-                        {constraints.map((constraint: string, index: number) => (
-                          <li key={index}>{constraint}</li>
-                        ))}
-                      </ul>
                     ) : (
-                      <p className="text-gray-700 dark:text-gray-300">
-                        No constraints specified.
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                        {challenge.description}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      Hints
-                    </h3>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                      {challenge.hints || 'No hints provided.'}
-                    </p>
-                  </div>
+                  {!hasContent ? (
+                    <div></div> // Empty div when content is not available
+                  ) : (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Examples
+                      </h3>
+                      {examples.length > 0 ? (
+                        examples.map((example: string, index: number) => (
+                          <div key={index} className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="font-medium text-gray-900 dark:text-white mb-2">
+                              Example {index + 1}:
+                            </p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                              {example}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            No examples provided yet.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!hasContent ? (
+                    <div></div> // Empty div when content is not available
+                  ) : (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        Constraints
+                      </h3>
+                      {constraints.length > 0 ? (
+                        <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                          {constraints.map((constraint: string, index: number) => (
+                            <li key={index}>{constraint}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-700 dark:text-gray-300">
+                          No constraints specified.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {!hasContent ? (
+                    <div></div> // Empty div when content is not available
+                  ) : (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        Hints
+                      </h3>
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                        {challenge.hints || 'No hints provided.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -295,23 +318,22 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
             </div>
           </div>
 
-          {/* Right Panel - Code Editor */}
+          {/* Right Panel - Code Editor - Only show when content exists */}
+          {hasContent && (
           <div className="w-1/2 flex flex-col">
             {/* Language Selector */}
             <div className="border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
               <select
                 value={language}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
+                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                 {supportedLanguages.map((lang: string) => (
                   <option key={lang} value={lang}>{lang.toUpperCase()}</option>
                 ))}
               </select>
               <button
                 onClick={() => setCode(challenge.starterCode?.[language] || getTemplate(language))}
-                className="flex items-center space-x-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
+                className="flex items-center space-x-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
                 <RotateCcw className="h-4 w-4" />
                 <span>Reset</span>
               </button>
@@ -351,12 +373,12 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
               <button
                 onClick={handleSubmit}
                 disabled={isRunning}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50 font-medium"
-              >
+                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50 font-medium">
                 {isRunning ? 'Submitting...' : 'Submit Solution'}
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
 
