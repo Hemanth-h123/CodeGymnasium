@@ -19,18 +19,22 @@ export default function NewDiscussionPage() {
 
     try {
       // Create discussion object
+      // Get user info from localStorage (in a real app, this would come from auth context)
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      
       const discussionData = {
         title,
         content,
         category,
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         createdAt: new Date().toISOString(),
-        author: 'current_user', // This should come from auth context
+        authorId: user.id || '12345',
+        author: user.username || 'Anonymous',
         views: 0,
         replies: 0,
         likes: 0
       }
-
+      
       // Send to API
       const response = await fetch('/api/content/discussions', {
         method: 'POST',
@@ -39,7 +43,7 @@ export default function NewDiscussionPage() {
         },
         body: JSON.stringify(discussionData),
       })
-
+      
       if (response.ok) {
         // Redirect to the new discussion
         router.push('/discussions')
