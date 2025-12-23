@@ -68,6 +68,20 @@ const router = Router()
 const topicProgress = new Map<string, Set<string>>()
 const topicExtras = new Map<string, { examples: any[]; problemIds: number[] }>()
 
+// Report interface to match frontend
+interface Report {
+  id: number
+  userId: string
+  userName: string
+  type: 'course' | 'problem' | 'challenge'
+  itemId: number
+  itemTitle: string
+  reason: string
+  description: string
+  status: 'pending' | 'resolved' | 'dismissed'
+  createdAt: string
+}
+
 router.get('/courses', async (req, res) => {
   try {
     const db = getDb()
@@ -974,4 +988,170 @@ router.put('/courses/:slug/topics', async (req, res) => {
   if (!course) return res.status(404).json({ message: 'Course not found' })
   course.courseTopics = newTopics
   return res.json({ updated: newTopics.length })
+})
+
+// Report Management
+router.get('/reports', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports ORDER BY created_at DESC`)
+      return res.json(rows as Report[])
+    }
+  } catch (e) {}
+  // Fallback to empty array
+  return res.json([])
+})
+
+router.post('/reports', async (req, res) => {
+  const body = req.body || {}
+  if (!body.userId || !body.type || !body.itemId || !body.reason || !body.description) {
+    return res.status(400).json({ message: 'Missing required fields: userId, type, itemId, reason, description' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      // Get user name from users table
+      const userRows = await query<any>(`SELECT username FROM users WHERE id=$1`, [body.userId])
+      const userName = userRows.length > 0 ? userRows[0].username : 'Unknown User'
+      
+      await query(`INSERT INTO reports (user_id, user_name, type, item_id, item_title, reason, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [
+        body.userId,
+        userName,
+        body.type,
+        body.itemId,
+        body.itemTitle || '',
+        body.reason,
+        body.description,
+        'pending'
+      ])
+      
+      // Get the newly created report
+      const reportRows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports WHERE user_id=$1 AND item_id=$2 AND created_at >= NOW() - INTERVAL '1 minute' ORDER BY created_at DESC LIMIT 1`, [body.userId, body.itemId])
+      
+      return res.status(201).json(reportRows[0] as Report)
+    }
+  } catch (e) {}
+  
+  // Fallback response
+  return res.status(500).json({ message: 'Failed to create report' })
+})
+
+router.patch('/reports/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  const updates = req.body || {}
+  
+  try {
+    const db = getDb()
+    if (db) {
+      const validFields: string[] = []
+      const values: any[] = []
+      
+      if (updates.status !== undefined) {
+        validFields.push('status=$' + (values.length + 1))
+        values.push(updates.status)
+      }
+      if (updates.reason !== undefined) {
+        validFields.push('reason=$' + (values.length + 1))
+        values.push(updates.reason)
+      }
+      if (updates.description !== undefined) {
+        validFields.push('description=$' + (values.length + 1))
+        values.push(updates.description)
+      }
+      
+      if (validFields.length > 0) {
+        values.push(id)
+        await query(`UPDATE reports SET ${validFields.join(', ')}, updated_at=NOW() WHERE id=$${values.length}`, values)
+      }
+      
+      // Return the updated report
+      const rows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports WHERE id=$1`, [id])
+      if (rows.length === 0) return res.status(404).json({ message: 'Report not found' })
+      
+      return res.json(rows[0] as Report)
+    }
+  } catch (e) {}
+  
+  return res.status(500).json({ message: 'Failed to update report' })
+})
+
+router.delete('/reports/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  
+  try {
+    const db = getDb()
+    if (db) {
+      await query(`DELETE FROM reports WHERE id=$1`, [id])
+      return res.status(204).send()
+    }
+  } catch (e) {}
+  
+  return res.status(500).json({ message: 'Failed to delete report' })
+})
+
+router.get('/reports/:type', async (req, res) => {
+  const type = req.params.type
+  if (!['course', 'problem', 'challenge'].includes(type)) {
+    return res.status(400).json({ message: 'Invalid report type' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports WHERE type=$1 ORDER BY created_at DESC`, [type])
+      return res.json(rows as Report[])
+    }
+  } catch (e) {}
+  
+  return res.json([])
+})
+
+// Leaderboard API
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      // Get users with their scores, problems solved, and other metrics
+      const rows = await query<any>('SELECT id, username, full_name as "fullName", total_score as "totalScore", problems_solved as "problemsSolved", current_streak, created_at as "joinedAt" FROM users WHERE is_active = true ORDER BY total_score DESC, problems_solved DESC LIMIT 100')
+      return res.json(rows)
+    }
+  } catch (e) {}
+  
+  // Fallback to empty array
+  return res.json([])
+})
+
+router.get('/leaderboard/:period', async (req, res) => {
+  const period = req.params.period
+  const validPeriods = ['daily', 'weekly', 'monthly', 'all']
+  if (!validPeriods.includes(period)) {
+    return res.status(400).json({ message: 'Invalid period. Valid values: daily, weekly, monthly, all' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      let dateCondition = ''
+      switch(period) {
+        case 'daily':
+          dateCondition = "created_at >= NOW() - INTERVAL '1 day'"
+          break
+        case 'weekly':
+          dateCondition = "created_at >= NOW() - INTERVAL '7 days'"
+          break
+        case 'monthly':
+          dateCondition = "created_at >= NOW() - INTERVAL '30 days'"
+          break
+        default:
+          dateCondition = 'true' // no date restriction for 'all'
+      }
+      
+      const rows = await query<any>('SELECT id, username, full_name as "fullName", total_score as "totalScore", problems_solved as "problemsSolved", current_streak, created_at as "joinedAt" FROM users WHERE is_active = true AND ' + dateCondition + ' ORDER BY total_score DESC, problems_solved DESC LIMIT 50')
+      return res.json(rows)
+    }
+  } catch (e) {}
+  
+  return res.json([])
 })
