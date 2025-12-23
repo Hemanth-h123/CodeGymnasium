@@ -31,64 +31,36 @@ export default function DiscussionsPage() {
       </div>
     )
   }
-  // Mock data - TODO: Fetch from API
-  const discussions = [
-    {
-      id: 1,
-      title: 'How to optimize Two Sum solution?',
-      author: 'john_doe',
-      category: 'Algorithms',
-      views: 342,
-      replies: 15,
-      likes: 28,
-      createdAt: '2 hours ago',
-      tags: ['array', 'hash-table', 'optimization']
-    },
-    {
-      id: 2,
-      title: 'Best resources for learning Dynamic Programming',
-      author: 'alice_smith',
-      category: 'Learning',
-      views: 856,
-      replies: 42,
-      likes: 67,
-      createdAt: '5 hours ago',
-      tags: ['dynamic-programming', 'resources', 'learning']
-    },
-    {
-      id: 3,
-      title: 'Weekly Contest #125 Discussion',
-      author: 'contest_admin',
-      category: 'Challenges',
-      views: 1234,
-      replies: 89,
-      likes: 145,
-      createdAt: '1 day ago',
-      tags: ['contest', 'weekly', 'discussion']
-    },
-    {
-      id: 4,
-      title: 'Alternative approach to Binary Tree Traversal',
-      author: 'tech_guru',
-      category: 'Data Structures',
-      views: 523,
-      replies: 23,
-      likes: 41,
-      createdAt: '1 day ago',
-      tags: ['trees', 'traversal', 'algorithms']
-    },
-    {
-      id: 5,
-      title: 'Tips for System Design Interview',
-      author: 'senior_dev',
-      category: 'Career',
-      views: 2341,
-      replies: 156,
-      likes: 398,
-      createdAt: '3 days ago',
-      tags: ['system-design', 'interview', 'career']
+  
+  const [discussions, setDiscussions] = useState([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    // Fetch discussions from API
+    const fetchDiscussions = async () => {
+      try {
+        const response = await fetch('/api/content/discussions')
+        if (response.ok) {
+          const data = await response.json()
+          setDiscussions(data)
+        } else {
+          // If API is not available, use empty array
+          setDiscussions([])
+        }
+      } catch (error) {
+        console.error('Error fetching discussions:', error)
+        setDiscussions([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+    
+    fetchDiscussions()
+  }, [])
+  
+  const handleNewDiscussion = () => {
+    router.push('/discussions/new')
+  }
 
   const categories = [
     { name: 'All', count: 2456 },
@@ -112,7 +84,10 @@ export default function DiscussionsPage() {
               Share knowledge and learn from the community
             </p>
           </div>
-          <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+          <button 
+            onClick={handleNewDiscussion}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
             New Discussion
           </button>
         </div>
@@ -139,59 +114,69 @@ export default function DiscussionsPage() {
           {/* Discussions List */}
           <div className="lg:col-span-3">
             <div className="space-y-4">
-              {discussions.map((discussion) => (
-                <Link key={discussion.id} href={`/discussions/${discussion.id}`}>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-all p-6 cursor-pointer">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 hover:text-blue-600 dark:hover:text-blue-400">
-                          {discussion.title}
-                        </h3>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {discussion.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
-                            >
-                              {tag}
-                            </span>
-                          ))}
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-600 dark:text-gray-400">Loading discussions...</div>
+                </div>
+              ) : discussions.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-500 dark:text-gray-400 mb-4">No discussions yet. Be the first to start a discussion!</div>
+                </div>
+              ) : (
+                discussions.map((discussion) => (
+                  <Link key={discussion.id} href={`/discussions/${discussion.id}`}>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-all p-6 cursor-pointer">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 hover:text-blue-600 dark:hover:text-blue-400">
+                            {discussion.title}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {discussion.tags?.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full text-xs font-medium">
-                        {discussion.category}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center space-x-4">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {discussion.author}
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full text-xs font-medium">
+                          {discussion.category}
                         </span>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{discussion.createdAt}</span>
-                        </div>
                       </div>
 
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <Eye className="h-4 w-4" />
-                          <span>{discussion.views}</span>
+                      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center space-x-4">
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {discussion.author}
+                          </span>
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{discussion.createdAt}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <MessageSquare className="h-4 w-4" />
-                          <span>{discussion.replies}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <ThumbsUp className="h-4 w-4" />
-                          <span>{discussion.likes}</span>
+
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-1">
+                            <Eye className="h-4 w-4" />
+                            <span>{discussion.views}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{discussion.replies}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <ThumbsUp className="h-4 w-4" />
+                            <span>{discussion.likes}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         </div>
