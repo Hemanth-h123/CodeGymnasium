@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Trophy, Calendar, Users, Clock, Award } from 'lucide-react'
+import { Trophy, Calendar, Users, Clock, Award, BookOpen } from 'lucide-react'
 import { challengeStore } from '@/lib/data-store'
 
 export default function ChallengesPage() {
@@ -60,11 +60,17 @@ export default function ChallengesPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Active Now
           </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {activeChallenge.map((challenge) => (
-              <ChallengeCard key={challenge.id} challenge={challenge} />
-            ))}
-          </div>
+          {activeChallenge.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {activeChallenge.map((challenge) => (
+                <ChallengeCard key={challenge.id} challenge={challenge} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-500 dark:text-gray-400 mb-4">No active challenges available.</div>
+            </div>
+          )}
         </div>
 
         {/* Upcoming Challenges */}
@@ -72,14 +78,21 @@ export default function ChallengesPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Upcoming Challenges
           </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {upcomingChallenges.map((challenge) => (
-              <ChallengeCard key={challenge.id} challenge={challenge} />
-            ))}
-          </div>
+          {upcomingChallenges.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {upcomingChallenges.map((challenge) => (
+                <ChallengeCard key={challenge.id} challenge={challenge} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-500 dark:text-gray-400 mb-4">No upcoming challenges available.</div>
+            </div>
+          )}
         </div>
 
-        {/* Leaderboard Teaser */}
+        {/* Leaderboard Teaser - Only show if there are challenges */}
+        {activeChallenge.length > 0 || upcomingChallenges.length > 0 ? (
         <div className="mt-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-8 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -94,6 +107,13 @@ export default function ChallengesPage() {
             </Link>
           </div>
         </div>
+        ) : (
+          <div className="text-center py-8">
+            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Challenges Coming Soon</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Check back later for new challenges!</p>
+          </div>
+        )}
       </div>
     </div>
   )
