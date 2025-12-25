@@ -7,13 +7,10 @@ import { MessageSquare, ThumbsUp, Eye, Clock } from 'lucide-react'
 
 export default function DiscussionsPage() {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
   const [discussions, setDiscussions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setMounted(true)
-    
     // Fetch discussions from API
     const fetchDiscussions = async () => {
       try {
@@ -35,19 +32,6 @@ export default function DiscussionsPage() {
     
     fetchDiscussions()
   }, [])
-
-  // Don't render until mounted to prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <div className="text-gray-600 dark:text-gray-400">Loading...</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   const handleNewDiscussion = () => {
     router.push('/discussions/new')
