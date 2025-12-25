@@ -151,6 +151,16 @@ router.post('/courses', async (req, res) => {
           ])
         }
       }
+      
+      // Increment courses and topics counts
+      try {
+        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['courses']);
+        if (Array.isArray(newCourse.courseTopics)) {
+          await query('UPDATE homepage_stats SET count = count + $1 WHERE stat_type = $2', [newCourse.courseTopics.length, 'topics']);
+        }
+      } catch (statsError) {
+        console.error('Error updating homepage stats:', statsError);
+      }
     }
   } catch (e) {}
   res.status(201).json(newCourse)
@@ -311,6 +321,13 @@ router.post('/problems', async (req, res) => {
         newProblem.category,
         newProblem.isPublished,
       ])
+      
+      // Increment problems count
+      try {
+        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['problems']);
+      } catch (statsError) {
+        console.error('Error updating homepage stats:', statsError);
+      }
     }
   } catch (e) {}
   res.status(201).json(newProblem)
@@ -411,6 +428,202 @@ router.delete('/problems/by-slug/:slug', async (req, res) => {
   const index = problems.findIndex(p => p.slug === slug)
   if (index !== -1) problems.splice(index, 1)
   return res.status(204).send()
+})
+
+// Discussions API
+
+interface Discussion {
+  id: string
+  userId: string
+  title: string
+  content: string
+  category: string
+  tags: string[]
+  views: number
+  replies: number
+  likes: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface DiscussionComment {
+  id: string
+  discussionId: string
+  userId: string
+  content: string
+  parentCommentId?: string
+  likes: number
+  createdAt: string
+  updatedAt: string
+}
+
+router.get('/discussions', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT d.id, d.title, d.content, d.category, d.tags, d.views, d.replies, d.likes, d.created_at as "createdAt", d.updated_at as "updatedAt", u.username as author FROM discussions d JOIN users u ON d.user_id = u.id ORDER BY d.created_at DESC')
+      return res.json(rows)
+    }
+  } catch (e) {}
+  return res.json([])
+})
+
+router.post('/discussions', async (req, res) => {
+  const body = req.body || {}
+  if (!body.title || !body.content || !body.category || !body.authorId) {
+    return res.status(400).json({ message: 'Missing required fields: title, content, category, authorId' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      const result = await query<any>('INSERT INTO discussions (user_id, title, content, category, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id, title, content, category, tags, views, replies, likes, created_at as "createdAt", updated_at as "updatedAt"', [
+        body.authorId,
+        body.title,
+        body.content,
+        body.category,
+        body.tags || []
+      ])
+      
+      // Update category count
+      await query('INSERT INTO discussion_category_counts (category, count) VALUES ($1, 1) ON CONFLICT (category) DO UPDATE SET count = discussion_category_counts.count + 1', [body.category])
+      
+      return res.status(201).json(result[0])
+    }
+  } catch (e) {}
+  
+  return res.status(500).json({ message: 'Failed to create discussion' })
+})
+
+router.get('/discussions/:id', async (req, res) => {
+  const id = String(req.params.id)
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT d.id, d.title, d.content, d.category, d.tags, d.views, d.replies, d.likes, d.created_at as "createdAt", d.updated_at as "updatedAt", u.username as author FROM discussions d JOIN users u ON d.user_id = u.id WHERE d.id = $1', [id])
+      if (rows.length === 0) return res.status(404).json({ message: 'Discussion not found' })
+      
+      // Increment views
+      await query('UPDATE discussions SET views = views + 1 WHERE id = $1', [id])
+      rows[0].views += 1
+      
+      return res.json(rows[0])
+    }
+  } catch (e) {}
+  
+  return res.status(404).json({ message: 'Discussion not found' })
+})
+
+router.get('/discussions/:id/comments', async (req, res) => {
+  const id = String(req.params.id)
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT dc.id, dc.content, dc.likes, dc.created_at as "createdAt", u.username as author FROM discussion_comments dc JOIN users u ON dc.user_id = u.id WHERE dc.discussion_id = $1 ORDER BY dc.created_at ASC', [id])
+      return res.json(rows)
+    }
+  } catch (e) {}
+  
+  return res.json([])
+})
+
+router.post('/discussions/:id/comments', async (req, res) => {
+  const id = String(req.params.id)
+  const body = req.body || {}
+  if (!body.content || !body.userId) {
+    return res.status(400).json({ message: 'Missing required fields: content, userId' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      const result = await query<any>('INSERT INTO discussion_comments (discussion_id, user_id, content) VALUES ($1, $2, $3) RETURNING id, content, likes, created_at as "createdAt"', [
+        id,
+        body.userId,
+        body.content
+      ])
+      
+      // Update discussion reply count
+      await query('UPDATE discussions SET replies = replies + 1 WHERE id = $1', [id])
+      
+      return res.status(201).json(result[0])
+    }
+  } catch (e) {}
+  
+  return res.status(500).json({ message: 'Failed to add comment' })
+})
+
+// Discussion categories API
+router.get('/discussion-categories', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT category, count FROM discussion_category_counts ORDER BY count DESC')
+      return res.json(rows)
+    }
+  } catch (e) {}
+  
+  return res.json([])
+})
+
+// Homepage statistics API
+router.get('/homepage-stats', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>('SELECT stat_type, count FROM homepage_stats')
+      const stats: { [key: string]: number } = {}
+      rows.forEach(row => {
+        stats[row.stat_type] = row.count
+      })
+      return res.json(stats)
+    }
+  } catch (e) {}
+  
+  return res.json({
+    active_learners: 0,
+    courses: 0,
+    topics: 0,
+    problems: 0
+  })
+})
+
+// Update homepage stats when users register
+router.post('/homepage-stats/users', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['active_learners'])
+      
+      // Get updated count
+      const rows = await query<any>('SELECT count FROM homepage_stats WHERE stat_type = $1', ['active_learners'])
+      return res.json({ count: rows[0]?.count || 0 })
+    }
+  } catch (e) {}
+  
+  return res.status(500).json({ message: 'Failed to update user count' })
+})
+
+// Update homepage stats when content is created
+router.post('/homepage-stats/:type', async (req, res) => {
+  const type = req.params.type
+  const validTypes = ['courses', 'topics', 'problems']
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ message: 'Invalid type. Valid values: courses, topics, problems' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', [type])
+      
+      // Get updated count
+      const rows = await query<any>('SELECT count FROM homepage_stats WHERE stat_type = $1', [type])
+      return res.json({ count: rows[0]?.count || 0 })
+    }
+  } catch (e) {}
+  
+  return res.status(500).json({ message: 'Failed to update content count' })
 })
 
 export default router
