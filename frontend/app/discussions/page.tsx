@@ -61,6 +61,7 @@ export default function DiscussionsPage() {
     { name: 'Learning', count: 0 },
     { name: 'Career', count: 0 }
   ])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
   
   useEffect(() => {
     const fetchCategories = async () => {
@@ -77,6 +78,8 @@ export default function DiscussionsPage() {
         }
       } catch (error) {
         console.error('Error fetching categories:', error)
+      } finally {
+        setCategoriesLoading(false)
       }
     }
     
@@ -110,15 +113,25 @@ export default function DiscussionsPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 sticky top-24">
               <h3 className="font-bold text-gray-900 dark:text-white mb-4">Categories</h3>
               <div className="space-y-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.name}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
-                  >
-                    <span className="text-gray-700 dark:text-gray-300">{category.name}</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{category.count}</span>
-                  </button>
-                ))}
+                {categoriesLoading ? (
+                  // Show loading placeholders
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="w-full flex items-center justify-between px-3 py-2 rounded-lg">
+                      <span className="text-gray-700 dark:text-gray-300 animate-pulse">Loading...</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">0</span>
+                    </div>
+                  ))
+                ) : (
+                  categories.map((category) => (
+                    <button
+                      key={category.name}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
+                    >
+                      <span className="text-gray-700 dark:text-gray-300">{category.name}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{category.count}</span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </div>
