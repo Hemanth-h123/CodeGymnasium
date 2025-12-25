@@ -1,7 +1,40 @@
+'use client'
+
 import Link from 'next/link'
 import { Code2, BookOpen, Trophy, Users } from 'lucide-react'
+import { useState, useEffect } from 'react'
+
+interface HomepageStats {
+  active_learners: number
+  courses: number
+  topics: number
+  problems: number
+}
 
 export default function HomePage() {
+  const [stats, setStats] = useState<HomepageStats>({
+    active_learners: 0,
+    courses: 0,
+    topics: 0,
+    problems: 0
+  })
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/content/homepage-stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        }
+      } catch (error) {
+        console.error('Error fetching homepage stats:', error)
+      }
+    }
+    
+    fetchStats()
+  }, [])
+  
   return (
     <div>
       {/* Hero Section */}
@@ -67,10 +100,10 @@ export default function HomePage() {
       <section className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 text-center">
-            <StatCard number="10,000+" label="Active Learners" />
-            <StatCard number="500+" label="Courses & Topics" />
-            <StatCard number="2,000+" label="Practice Problems" />
-            <StatCard number="100+" label="Weekly Challenges" />
+            <StatCard number={stats.active_learners.toLocaleString() + '+'} label="Active Learners" />
+            <StatCard number={stats.courses.toLocaleString() + '+'} label="Courses" />
+            <StatCard number={stats.topics.toLocaleString() + '+'} label="Topics" />
+            <StatCard number={stats.problems.toLocaleString() + '+'} label="Practice Problems" />
           </div>
         </div>
       </section>
