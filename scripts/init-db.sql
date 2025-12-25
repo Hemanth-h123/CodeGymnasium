@@ -369,4 +369,113 @@ VALUES
     ('Algorithms & Problem Solving', 'algorithms-problem-solving', 'Master algorithmic thinking', 'intermediate', 'Algorithms', TRUE, 2),
     ('Web Development with JavaScript', 'web-development-javascript', 'Build modern web applications', 'beginner', 'Web Development', TRUE, 3);
 
+-- ==============================================
+-- DISCUSSIONS
+-- ==============================================
+
+CREATE TABLE discussions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    tags TEXT[], -- Array of tags
+    views INTEGER DEFAULT 0,
+    replies INTEGER DEFAULT 0,
+    likes INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE discussion_comments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    discussion_id UUID NOT NULL REFERENCES discussions(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    parent_comment_id UUID REFERENCES discussion_comments(id), -- For nested replies
+    likes INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for discussions
+CREATE INDEX idx_discussions_category ON discussions(category);
+CREATE INDEX idx_discussions_created_at ON discussions(created_at);
+CREATE INDEX idx_discussions_user_id ON discussions(user_id);
+
+-- ==============================================
+-- DISCUSSIONS CATEGORIES COUNTS (for tracking category counts)
+-- ==============================================
+
+-- Table to track discussion counts by category
+CREATE TABLE discussion_category_counts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category VARCHAR(100) UNIQUE NOT NULL,
+    count INTEGER DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==============================================
+-- HOMEPAGE STATISTICS
+-- ==============================================
+
+-- Table to track homepage statistics
+CREATE TABLE homepage_stats (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    stat_type VARCHAR(50) UNIQUE NOT NULL, -- 'active_learners', 'courses', 'topics', 'problems'
+    count INTEGER DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Initialize homepage stats with zero values
+INSERT INTO homepage_stats (stat_type, count) VALUES 
+    ('active_learners', 0),
+    ('courses', 0),
+    ('topics', 0),
+    ('problems', 0);
+
+-- ==============================================
+-- TRIGGER FOR UPDATING DISCUSSION CATEGORY COUNTS
+-- ==============================================
+
+CREATE OR REPLACE FUNCTION update_discussion_category_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        -- Increment the category count when a new discussion is created
+        INSERT INTO discussion_category_counts (category, count) 
+        VALUES (NEW.category, 1)
+        ON CONFLICT (category) 
+        DO UPDATE SET count = discussion_category_counts.count + 1, updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        -- Decrement the category count when a discussion is deleted
+        UPDATE discussion_category_counts 
+        SET count = GREATEST(0, count - 1), updated_at = CURRENT_TIMESTAMP
+        WHERE category = OLD.category;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_discussion_category_count
+    AFTER INSERT OR DELETE ON discussions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_discussion_category_count();
+
+-- ==============================================
+-- TRIGGERS FOR UPDATING UPDATED_AT
+-- ==============================================
+
+-- Trigger for discussion_category_counts
+CREATE TRIGGER update_discussion_category_counts_updated_at 
+    BEFORE UPDATE ON discussion_category_counts 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger for homepage_stats
+CREATE TRIGGER update_homepage_stats_updated_at 
+    BEFORE UPDATE ON homepage_stats 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- End of initialization script
