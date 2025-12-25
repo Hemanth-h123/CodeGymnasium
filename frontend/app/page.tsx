@@ -18,6 +18,7 @@ export default function HomePage() {
     topics: 0,
     problems: 0
   })
+  const [loading, setLoading] = useState(true)
   
   useEffect(() => {
     const fetchStats = async () => {
@@ -29,6 +30,8 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('Error fetching homepage stats:', error)
+      } finally {
+        setLoading(false)
       }
     }
     
@@ -100,10 +103,21 @@ export default function HomePage() {
       <section className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 text-center">
-            <StatCard number={stats.active_learners.toLocaleString() + '+'} label="Active Learners" />
-            <StatCard number={stats.courses.toLocaleString() + '+'} label="Courses" />
-            <StatCard number={stats.topics.toLocaleString() + '+'} label="Topics" />
-            <StatCard number={stats.problems.toLocaleString() + '+'} label="Practice Problems" />
+            {loading ? (
+              <>
+                <StatCard number="..." label="Active Learners" />
+                <StatCard number="..." label="Courses" />
+                <StatCard number="..." label="Topics" />
+                <StatCard number="..." label="Practice Problems" />
+              </>
+            ) : (
+              <>
+                <StatCard number={stats.active_learners.toLocaleString() + '+'} label="Active Learners" />
+                <StatCard number={stats.courses.toLocaleString() + '+'} label="Courses" />
+                <StatCard number={stats.topics.toLocaleString() + '+'} label="Topics" />
+                <StatCard number={stats.problems.toLocaleString() + '+'} label="Practice Problems" />
+              </>
+            )}
           </div>
         </div>
       </section>
