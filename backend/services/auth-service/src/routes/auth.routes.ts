@@ -34,6 +34,13 @@ router.post('/register', async (req, res) => {
       if (existing.length) return res.status(409).json({ message: 'User already exists' });
       const passwordHash = await bcrypt.hash(password, 10);
       await query('INSERT INTO users (email, username, password_hash, is_email_verified, is_active) VALUES ($1,$2,$3,true,true)', [email, username, passwordHash]);
+      
+      // Increment active learners count
+      try {
+        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['active_learners']);
+      } catch (statsError) {
+        console.error('Error updating homepage stats:', statsError);
+      }
     } else {
       if (memoryUsers.has(email)) return res.status(409).json({ message: 'User already exists' });
       const passwordHash = await bcrypt.hash(password, 10);
