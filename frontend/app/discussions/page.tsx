@@ -53,14 +53,35 @@ export default function DiscussionsPage() {
     router.push('/discussions/new')
   }
 
-  const categories = [
-    { name: 'All', count: 2456 },
-    { name: 'Algorithms', count: 832 },
-    { name: 'Data Structures', count: 654 },
-    { name: 'Challenges', count: 423 },
-    { name: 'Learning', count: 347 },
-    { name: 'Career', count: 200 }
-  ]
+  const [categories, setCategories] = useState([
+    { name: 'All', count: 0 },
+    { name: 'Algorithms', count: 0 },
+    { name: 'Data Structures', count: 0 },
+    { name: 'Challenges', count: 0 },
+    { name: 'Learning', count: 0 },
+    { name: 'Career', count: 0 }
+  ])
+  
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/content/discussion-categories')
+        if (response.ok) {
+          const data = await response.json()
+          // Update categories with actual counts
+          const updatedCategories = [
+            { name: 'All', count: data.reduce((sum: number, cat: any) => sum + cat.count, 0) },
+            ...data.map((cat: any) => ({ name: cat.category, count: cat.count }))
+          ]
+          setCategories(updatedCategories)
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    }
+    
+    fetchCategories()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
