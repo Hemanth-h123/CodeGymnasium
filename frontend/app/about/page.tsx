@@ -117,32 +117,18 @@ export default function AboutPage() {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Our Team</h2>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    CodeGymnasium was founded by a passionate group of developers and educators who recognized 
+                    CodeGymnasium was founded by a passionate developer who recognized 
                     the gap between traditional programming education and the practical skills needed in the 
-                    modern tech industry. Our team combines deep expertise in software engineering, 
+                    modern tech industry. Our platform combines deep expertise in software engineering, 
                     education, and user experience design.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mt-6">
                     <div className="text-center">
                       <div className="w-24 h-24 mx-auto bg-gray-200 dark:bg-gray-700 rounded-full mb-4 flex items-center justify-center">
                         <span className="text-4xl">👨‍💻</span>
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">John Doe</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Hemanth Narravula</h3>
                       <p className="text-gray-500 dark:text-gray-400 text-sm">Founder & CEO</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-24 h-24 mx-auto bg-gray-200 dark:bg-gray-700 rounded-full mb-4 flex items-center justify-center">
-                        <span className="text-4xl">👩‍💻</span>
-                      </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Jane Smith</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">CTO</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-24 h-24 mx-auto bg-gray-200 dark:bg-gray-700 rounded-full mb-4 flex items-center justify-center">
-                        <span className="text-4xl">👨‍🏫</span>
-                      </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Robert Chen</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Head of Education</p>
                     </div>
                   </div>
                 </div>
