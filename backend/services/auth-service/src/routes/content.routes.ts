@@ -626,6 +626,69 @@ router.post('/homepage-stats/:type', async (req, res) => {
   return res.status(500).json({ message: 'Failed to update content count' })
 })
 
+// Admin dashboard metrics API
+router.get('/admin/metrics', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      // Calculate daily active users (users who have logged in today)
+      const dailyActiveUsers = await query<any>(`SELECT COUNT(DISTINCT id) as count FROM users WHERE DATE(last_login_at) = CURRENT_DATE OR DATE(created_at) = CURRENT_DATE`)
+      
+      // Calculate average session time (placeholder - in a real implementation, this would track actual session times)
+      const avgSessionTime = await query<any>(`SELECT COALESCE(AVG(0), 0) as avg_time FROM users`) // Placeholder calculation
+      
+      // Calculate problem solve rate (percentage of problems solved by users)
+      const problemSolveRate = await query<any>(`SELECT 
+        CASE 
+          WHEN COUNT(*) > 0 THEN 
+            ROUND(COALESCE(SUM(CASE WHEN status = 'solved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 0), 2)
+          ELSE 0 
+        END as solve_rate
+        FROM user_problem_submissions`)
+      
+      // Return metrics with defaults if queries fail
+      return res.json({
+        dailyActiveUsers: dailyActiveUsers[0]?.count || 0,
+        avgSessionTime: Math.floor((avgSessionTime[0]?.avg_time || 0) / 60) + ' min', // Convert to minutes
+        problemSolveRate: problemSolveRate[0]?.solve_rate || 0 + '%'
+      })
+    }
+  } catch (e) {
+    console.error('Error fetching admin metrics:', e)
+  }
+  
+  // Return default values if anything fails
+  return res.json({
+    dailyActiveUsers: 0,
+    avgSessionTime: '0 min',
+    problemSolveRate: '0%'
+  })
+})
+
+// Update metrics when users interact with the platform
+router.post('/admin/metrics/update', async (req, res) => {
+  const { metricType, increment = 1 } = req.body
+  
+  if (!metricType) {
+    return res.status(400).json({ message: 'Missing metricType' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      // For now, we're just logging the metric update request
+      // In a full implementation, we would update appropriate tables
+      console.log(`Metric update requested: ${metricType} with increment ${increment}`)
+      
+      return res.json({ success: true, message: 'Metrics update request received' })
+    }
+  } catch (e) {
+    console.error('Error updating metrics:', e)
+  }
+  
+  return res.status(500).json({ message: 'Failed to update metrics' })
+})
+
 export default router
 // Topic progress
 router.post('/topics/:id/complete', async (req, res) => {
