@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Users, BookOpen, Code, Trophy, TrendingUp, Activity, FileText, MessageSquare } from 'lucide-react'
@@ -8,6 +8,12 @@ import { Users, BookOpen, Code, Trophy, TrendingUp, Activity, FileText, MessageS
 export default function AdminDashboard() {
   const router = useRouter()
 
+  const [adminMetrics, setAdminMetrics] = useState({
+    dailyActiveUsers: 0,
+    avgSessionTime: '0 min',
+    problemSolveRate: '0%'
+  })
+  
   useEffect(() => {
     // Check if user is admin
     const isAdmin = localStorage.getItem('isAdmin') === 'true'
@@ -15,6 +21,22 @@ export default function AdminDashboard() {
       router.push('/admin/login')
     }
   }, [router])
+  
+  useEffect(() => {
+    const fetchAdminMetrics = async () => {
+      try {
+        const response = await fetch('/api/content/admin/metrics')
+        if (response.ok) {
+          const data = await response.json()
+          setAdminMetrics(data)
+        }
+      } catch (error) {
+        console.error('Error fetching admin metrics:', error)
+      }
+    }
+    
+    fetchAdminMetrics()
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem('isAdmin')
@@ -33,9 +55,9 @@ export default function AdminDashboard() {
     discussions: 0,
   }
 
-  const recentActivity = []
+  const recentActivity: any[] = []
 
-  const topPerformers = []
+  const topPerformers: any[] = []
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -216,21 +238,21 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <MetricCard
               label="Daily Active Users"
-              value="3,245"
-              change="+12.5%"
+              value={adminMetrics.dailyActiveUsers}
+              change="+0%"
               positive={true}
             />
             <MetricCard
               label="Avg. Session Time"
-              value="24 min"
-              change="+5.2%"
+              value={adminMetrics.avgSessionTime}
+              change="+0%"
               positive={true}
             />
             <MetricCard
               label="Problem Solve Rate"
-              value="68%"
-              change="-2.1%"
-              positive={false}
+              value={adminMetrics.problemSolveRate}
+              change="+0%"
+              positive={true}
             />
           </div>
         </div>
