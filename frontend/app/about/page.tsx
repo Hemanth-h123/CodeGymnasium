@@ -1,8 +1,41 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+interface HomepageStats {
+  active_learners: number
+  courses: number
+  topics: number
+  problems: number
+}
+
 export default function AboutPage() {
   const [activeTab, setActiveTab] = useState('mission')
+  const [stats, setStats] = useState<HomepageStats>({
+    active_learners: 0,
+    courses: 0,
+    topics: 0,
+    problems: 0
+  })
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/content/homepage-stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        }
+      } catch (error) {
+        console.error('Error fetching homepage stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchStats()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -169,17 +202,17 @@ export default function AboutPage() {
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
               <div className="text-3xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">10K+</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{loading ? '...' : stats.active_learners.toLocaleString() + '+'}</h3>
               <p className="text-gray-600 dark:text-gray-400">Active Learners</p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
               <div className="text-3xl mb-4">📚</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">500+</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{loading ? '...' : stats.problems.toLocaleString() + '+'}</h3>
               <p className="text-gray-600 dark:text-gray-400">Coding Challenges</p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
               <div className="text-3xl mb-4">🎓</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">50+</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{loading ? '...' : stats.courses.toLocaleString() + '+'}</h3>
               <p className="text-gray-600 dark:text-gray-400">Interactive Courses</p>
             </div>
           </div>
