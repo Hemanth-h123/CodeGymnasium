@@ -689,6 +689,123 @@ router.post('/admin/metrics/update', async (req, res) => {
   return res.status(500).json({ message: 'Failed to update metrics' })
 })
 
+// Challenges API
+interface Challenge {
+  id: string
+  title: string
+  slug: string
+  description?: string
+  type: string
+  difficulty: string
+  startTime: string
+  endTime: string
+  isActive: boolean
+  isRanked: boolean
+  maxParticipants: number
+  prizeDescription?: string
+  totalParticipants: number
+  createdAt: string
+  createdBy?: string
+}
+
+router.get('/challenges', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      const rows = await query<any>(`SELECT id, title, slug, description, type, difficulty, start_time as "startTime", end_time as "endTime", is_active as "isActive", is_ranked as "isRanked", max_participants as "maxParticipants", prize_description as "prizeDescription", total_participants as "totalParticipants", to_char(created_at, 'YYYY-MM-DD') as "createdAt" FROM challenges ORDER BY created_at DESC`)
+      return res.json(rows as Challenge[])
+    }
+  } catch (e) {
+    console.error('Error fetching challenges:', e)
+  }
+  return res.json([])
+})
+
+router.post('/challenges', async (req, res) => {
+  const body = req.body || {}
+  if (!body.title || !body.slug || !body.type || !body.difficulty || !body.startTime || !body.endTime) {
+    return res.status(400).json({ message: 'Missing required fields: title, slug, type, difficulty, startTime, endTime' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      const result = await query<any>(`INSERT INTO challenges (title, slug, description, type, difficulty, start_time, end_time, is_ranked, max_participants, prize_description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, title, slug, description, type, difficulty, start_time as "startTime", end_time as "endTime", is_active as "isActive", is_ranked as "isRanked", max_participants as "maxParticipants", prize_description as "prizeDescription", total_participants as "totalParticipants", created_at`, [
+        body.title,
+        body.slug,
+        body.description || null,
+        body.type,
+        body.difficulty,
+        body.startTime,
+        body.endTime,
+        body.isRanked !== undefined ? body.isRanked : true,
+        body.maxParticipants || null,
+        body.prizeDescription || null
+      ])
+      
+      // Increment challenges count in homepage stats
+      try {
+        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['challenges']);
+      } catch (statsError) {
+        console.error('Error updating homepage stats:', statsError);
+      }
+      
+      return res.status(201).json(result[0])
+    }
+  } catch (e) {
+    console.error('Error creating challenge:', e)
+  }
+  
+  return res.status(500).json({ message: 'Failed to create challenge' })
+})
+
+router.patch('/challenges/:id/publish', async (req, res) => {
+  const id = req.params.id
+  try {
+    const db = getDb()
+    if (db) {
+      // Get current challenge status
+      const currentChallenge = await query<any>('SELECT is_active FROM challenges WHERE id = $1', [id])
+      if (!currentChallenge.length) {
+        return res.status(404).json({ message: 'Challenge not found' })
+      }
+      
+      // Toggle the active status
+      const newStatus = !currentChallenge[0].is_active
+      await query('UPDATE challenges SET is_active = $1 WHERE id = $2', [newStatus, id])
+      
+      // Return updated challenge
+      const updatedChallenge = await query<any>(`SELECT id, title, slug, description, type, difficulty, start_time as "startTime", end_time as "endTime", is_active as "isActive", is_ranked as "isRanked", max_participants as "maxParticipants", prize_description as "prizeDescription", total_participants as "totalParticipants", to_char(created_at, 'YYYY-MM-DD') as "createdAt" FROM challenges WHERE id = $1`, [id])
+      
+      return res.json(updatedChallenge[0])
+    }
+  } catch (e) {
+    console.error('Error toggling challenge publish status:', e)
+  }
+  
+  return res.status(500).json({ message: 'Failed to toggle challenge publish status' })
+})
+
+// Update challenges count if not exists in homepage_stats
+router.get('/ensure-challenges-count', async (req, res) => {
+  try {
+    const db = getDb()
+    if (db) {
+      // Check if challenges count exists in homepage_stats
+      const checkResult = await query<any>('SELECT COUNT(*) as count FROM homepage_stats WHERE stat_type = $1', ['challenges'])
+      if (checkResult[0].count === 0) {
+        // Insert challenges count if it doesn't exist
+        await query('INSERT INTO homepage_stats (stat_type, count) VALUES ($1, $2)', ['challenges', 0])
+        return res.json({ message: 'Challenges count initialized' })
+      }
+      return res.json({ message: 'Challenges count already exists' })
+    }
+  } catch (e) {
+    console.error('Error ensuring challenges count:', e)
+  }
+  return res.status(500).json({ message: 'Failed to ensure challenges count' })
+})
+
 export default router
 // Topic progress
 router.post('/topics/:id/complete', async (req, res) => {
