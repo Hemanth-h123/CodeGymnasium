@@ -432,7 +432,8 @@ INSERT INTO homepage_stats (stat_type, count) VALUES
     ('active_learners', 0),
     ('courses', 0),
     ('topics', 0),
-    ('problems', 0);
+    ('problems', 0),
+    ('challenges', 0);
 
 -- ==============================================
 -- TRIGGER FOR UPDATING DISCUSSION CATEGORY COUNTS
