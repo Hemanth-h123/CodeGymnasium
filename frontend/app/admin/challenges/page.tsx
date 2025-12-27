@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Eye, Search, Filter, ToggleLeft, ToggleRight, ArrowLeft, Calendar, Award } from 'lucide-react'
-import { challengeStore } from '@/lib/data-store'
 
 export default function AdminChallengesPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [challenges, setChallenges] = useState(challengeStore.getAll())
+  const [challenges, setChallenges] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check if user is admin
@@ -20,45 +20,74 @@ export default function AdminChallengesPage() {
       router.push('/admin/login')
       return
     }
-
-    // Load challenges and listen for changes
-    const loadData = () => setChallenges(challengeStore.getAll())
-    loadData()
-    window.addEventListener('dataChange', loadData)
-    return () => window.removeEventListener('dataChange', loadData)
+    
+    const fetchChallenges = async () => {
+      try {
+        const response = await fetch('/api/content/challenges')
+        if (response.ok) {
+          const data = await response.json()
+          setChallenges(data)
+        }
+      } catch (error) {
+        console.error('Error fetching challenges:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchChallenges()
   }, [router])
 
-  const filteredChallenges = challenges.filter(challenge => {
+  const filteredChallenges = challenges.filter((challenge: any) => {
     if (searchQuery && !challenge.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false
     }
     if (difficultyFilter !== 'all' && challenge.difficulty !== difficultyFilter) {
       return false
     }
-    if (statusFilter === 'published' && !challenge.isPublished) return false
-    if (statusFilter === 'draft' && challenge.isPublished) return false
+    if (statusFilter === 'published' && !challenge.isActive) return false
+    if (statusFilter === 'draft' && challenge.isActive) return false
     return true
   })
 
-  const handleDelete = (id: number, title: string) => {
+  const handleDelete = async (id: number, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
-      challengeStore.delete(id)
-      setChallenges(challengeStore.getAll())
+      try {
+        const response = await fetch(`/api/content/challenges/${id}`, {
+          method: 'DELETE',
+        })
+        if (response.ok) {
+          setChallenges(challenges.filter((challenge: any) => challenge.id !== id))
+        }
+      } catch (error) {
+        console.error('Error deleting challenge:', error)
+      }
     }
   }
 
-  const handleTogglePublish = (id: number) => {
-    challengeStore.togglePublish(id)
-    setChallenges(challengeStore.getAll())
+  const handleTogglePublish = async (id: number) => {
+    try {
+      const response = await fetch(`/api/content/challenges/${id}/publish`, {
+        method: 'PATCH',
+      })
+      if (response.ok) {
+        const updatedChallenge = await response.json()
+        setChallenges(challenges.map((challenge: any) => 
+          challenge.id === id ? { ...challenge, isActive: updatedChallenge.isActive } : challenge
+        ))
+      }
+    } catch (error) {
+      console.error('Error toggling challenge publish status:', error)
+    }
   }
 
   const stats = {
     total: challenges.length,
-    published: challenges.filter(c => c.isPublished).length,
-    draft: challenges.filter(c => !c.isPublished).length,
-    easy: challenges.filter(c => c.difficulty === 'easy').length,
-    medium: challenges.filter(c => c.difficulty === 'medium').length,
-    hard: challenges.filter(c => c.difficulty === 'hard').length
+    published: challenges.filter((c: any) => c.isActive).length,
+    draft: challenges.filter((c: any) => !c.isActive).length,
+    easy: challenges.filter((c: any) => c.difficulty === 'easy').length,
+    medium: challenges.filter((c: any) => c.difficulty === 'medium').length,
+    hard: challenges.filter((c: any) => c.difficulty === 'hard').length
   }
 
   return (
@@ -228,21 +257,21 @@ export default function AdminChallengesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {challenge.participants?.toLocaleString() || 0}
+                        {challenge.totalParticipants?.toLocaleString() || 0}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                           <Calendar className="h-4 w-4 mr-1" />
-                          {challenge.timeLimit ? `${challenge.timeLimit} min` : 'N/A'}
+                          {challenge.startTime ? new Date(challenge.startTime).toLocaleDateString() : 'N/A'}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          challenge.isPublished
+                          challenge.isActive
                             ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
                         }`}>
-                          {challenge.isPublished ? 'Published' : 'Draft'}
+                          {challenge.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -250,13 +279,13 @@ export default function AdminChallengesPage() {
                           <button
                             onClick={() => handleTogglePublish(challenge.id)}
                             className={`p-2 transition-colors ${
-                              challenge.isPublished
+                              challenge.isActive
                                 ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400'
                             }`}
-                            title={challenge.isPublished ? 'Unpublish' : 'Publish'}
+                            title={challenge.isActive ? 'Deactivate' : 'Activate'}
                           >
-                            {challenge.isPublished ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
+                            {challenge.isActive ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
                           </button>
                           <Link
                             href={`/challenges/${challenge.slug}`}
