@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Eye, Search, Filter, ToggleLeft, ToggleRight, ArrowLeft } from 'lucide-react'
-import { courseStore } from '@/lib/data-store'
 
 export default function AdminCoursesPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [courses, setCourses] = useState(courseStore.getAll())
+  const [courses, setCourses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check if user is admin
@@ -19,15 +19,25 @@ export default function AdminCoursesPage() {
       router.push('/admin/login')
       return
     }
-
-    // Load courses and listen for changes
-    const loadData = () => setCourses(courseStore.getAll())
-    loadData()
-    window.addEventListener('dataChange', loadData)
-    return () => window.removeEventListener('dataChange', loadData)
+    
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/api/content/courses')
+        if (response.ok) {
+          const data = await response.json()
+          setCourses(data)
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchCourses()
   }, [router])
 
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = courses.filter((course: any) => {
     if (searchQuery && !course.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false
     }
@@ -36,16 +46,35 @@ export default function AdminCoursesPage() {
     return true
   })
 
-  const handleDelete = (id: number, title: string) => {
+  const handleDelete = async (id: number, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
-      courseStore.delete(id)
-      setCourses(courseStore.getAll())
+      try {
+        const response = await fetch(`/api/content/courses/${id}`, {
+          method: 'DELETE',
+        })
+        if (response.ok) {
+          setCourses(courses.filter((course: any) => course.id !== id))
+        }
+      } catch (error) {
+        console.error('Error deleting course:', error)
+      }
     }
   }
 
-  const handleTogglePublish = (id: number) => {
-    courseStore.togglePublish(id)
-    setCourses(courseStore.getAll())
+  const handleTogglePublish = async (id: number) => {
+    try {
+      const response = await fetch(`/api/content/courses/${id}/publish`, {
+        method: 'PATCH',
+      })
+      if (response.ok) {
+        const updatedCourse = await response.json()
+        setCourses(courses.map((course: any) => 
+          course.id === id ? { ...course, isPublished: updatedCourse.isPublished } : course
+        ))
+      }
+    } catch (error) {
+      console.error('Error toggling course publish status:', error)
+    }
   }
 
   return (
