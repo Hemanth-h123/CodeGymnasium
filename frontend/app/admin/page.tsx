@@ -44,16 +44,67 @@ export default function AdminDashboard() {
     router.push('/admin/login')
   }
   // Mock data - TODO: Fetch from API
-  const stats = {
+  const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
     totalCourses: 0,
     totalProblems: 0,
     totalSubmissions: 0,
     activeChallenges: 0,
-    pendingReports:0,
+    pendingReports: 0,
     discussions: 0,
-  }
+  })
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch homepage stats
+        const homepageResponse = await fetch('/api/content/homepage-stats')
+        if (homepageResponse.ok) {
+          const homepageData = await homepageResponse.json()
+          setStats((prev: any) => ({
+            ...prev,
+            totalCourses: homepageData.courses || 0,
+            totalProblems: homepageData.problems || 0,
+            activeChallenges: homepageData.challenges || 0,
+            activeUsers: homepageData.active_learners || 0
+          }))
+        }
+        
+        // Fetch other stats
+        const coursesResponse = await fetch('/api/content/courses')
+        if (coursesResponse.ok) {
+          const coursesData = await coursesResponse.json()
+          setStats((prev: any) => ({
+            ...prev,
+            totalCourses: coursesData.length || 0
+          }))
+        }
+        
+        const problemsResponse = await fetch('/api/content/problems')
+        if (problemsResponse.ok) {
+          const problemsData = await problemsResponse.json()
+          setStats((prev: any) => ({
+            ...prev,
+            totalProblems: problemsData.length || 0
+          }))
+        }
+        
+        const challengesResponse = await fetch('/api/content/challenges')
+        if (challengesResponse.ok) {
+          const challengesData = await challengesResponse.json()
+          setStats((prev: any) => ({
+            ...prev,
+            activeChallenges: challengesData.length || 0
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+      }
+    }
+    
+    fetchStats()
+  }, [])
 
   const recentActivity: any[] = []
 
