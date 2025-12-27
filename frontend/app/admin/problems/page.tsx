@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Eye, Search, Filter, CheckCircle, XCircle, ToggleLeft, ToggleRight, ArrowLeft } from 'lucide-react'
-import { problemStore } from '@/lib/data-store'
 
 export default function AdminProblemsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [problems, setProblems] = useState(problemStore.getAll())
+  const [problems, setProblems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check if user is admin
@@ -20,15 +20,25 @@ export default function AdminProblemsPage() {
       router.push('/admin/login')
       return
     }
-
-    // Load problems and listen for changes
-    const loadData = () => setProblems(problemStore.getAll())
-    loadData()
-    window.addEventListener('dataChange', loadData)
-    return () => window.removeEventListener('dataChange', loadData)
+    
+    const fetchProblems = async () => {
+      try {
+        const response = await fetch('/api/content/problems')
+        if (response.ok) {
+          const data = await response.json()
+          setProblems(data)
+        }
+      } catch (error) {
+        console.error('Error fetching problems:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchProblems()
   }, [router])
 
-  const filteredProblems = problems.filter(problem => {
+  const filteredProblems = problems.filter((problem: any) => {
     if (searchQuery && !problem.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false
     }
@@ -40,25 +50,44 @@ export default function AdminProblemsPage() {
     return true
   })
 
-  const handleDelete = (id: number, title: string) => {
+  const handleDelete = async (id: number, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
-      problemStore.delete(id)
-      setProblems(problemStore.getAll())
+      try {
+        const response = await fetch(`/api/content/problems/${id}`, {
+          method: 'DELETE',
+        })
+        if (response.ok) {
+          setProblems(problems.filter((problem: any) => problem.id !== id))
+        }
+      } catch (error) {
+        console.error('Error deleting problem:', error)
+      }
     }
   }
 
-  const handleTogglePublish = (id: number) => {
-    problemStore.togglePublish(id)
-    setProblems(problemStore.getAll())
+  const handleTogglePublish = async (id: number) => {
+    try {
+      const response = await fetch(`/api/content/problems/${id}/publish`, {
+        method: 'PATCH',
+      })
+      if (response.ok) {
+        const updatedProblem = await response.json()
+        setProblems(problems.map((problem: any) => 
+          problem.id === id ? { ...problem, isPublished: updatedProblem.isPublished } : problem
+        ))
+      }
+    } catch (error) {
+      console.error('Error toggling problem publish status:', error)
+    }
   }
 
   const stats = {
     total: problems.length,
-    published: problems.filter(p => p.isPublished).length,
-    draft: problems.filter(p => !p.isPublished).length,
-    easy: problems.filter(p => p.difficulty === 'easy').length,
-    medium: problems.filter(p => p.difficulty === 'medium').length,
-    hard: problems.filter(p => p.difficulty === 'hard').length
+    published: problems.filter((p: any) => p.isPublished).length,
+    draft: problems.filter((p: any) => !p.isPublished).length,
+    easy: problems.filter((p: any) => p.difficulty === 'easy').length,
+    medium: problems.filter((p: any) => p.difficulty === 'medium').length,
+    hard: problems.filter((p: any) => p.difficulty === 'hard').length
   }
 
   return (
