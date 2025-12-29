@@ -25,17 +25,25 @@ export default function ProblemsPage() {
       return
     }
 
-    const loadData = () => {
-      const all = problemStore.getAll()
-      // Initialize store once if empty by using published defaults from code
-      if (!localStorage.getItem('problems') && all.length === 0) {
-        localStorage.setItem('problems', JSON.stringify([]))
+    const fetchProblems = async () => {
+      try {
+        // Get user email from localStorage
+        const userEmail = localStorage.getItem('userEmail')
+        const emailParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : ''
+        
+        const response = await fetch(`/api/content/problems${emailParam}`)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter to only show published problems
+          const publishedProblems = data.filter((p: any) => p.isPublished)
+          setProblems(publishedProblems)
+        }
+      } catch (error) {
+        console.error('Error fetching problems:', error)
       }
-      setProblems(problemStore.getPublished())
     }
-    loadData()
-    window.addEventListener('dataChange', loadData)
-    return () => window.removeEventListener('dataChange', loadData)
+    
+    fetchProblems()
   }, [router])
 
   const solvedCount = problems.filter(p => p.solved).length
