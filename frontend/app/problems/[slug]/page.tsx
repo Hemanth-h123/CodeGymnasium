@@ -167,8 +167,58 @@ export default function ProblemDetailPage({ params }: { params: { slug: string }
       // Record in user stats
       recordProblemSolved(problem.title, getPointsForProblem(problem.difficulty))
       
+      // Send submission to backend
+      try {
+        const userId = localStorage.getItem('userId')
+        if (userId) {
+          const submissionResponse = await fetch(`/api/content/problems/${problem.slug}/submit`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              code: code,
+              language: language,
+              status: 'accepted'
+            })
+          })
+          
+          if (!submissionResponse.ok) {
+            console.error('Failed to record submission:', await submissionResponse.text())
+          }
+        }
+      } catch (error) {
+        console.error('Error submitting to backend:', error)
+      }
+      
       // Show success message
       alert(`Congratulations! You solved "${problem.title}" and earned ${getPointsForProblem(problem.difficulty)} points!`)
+    } else {
+      // Even if not accepted, still send submission to backend to record attempt
+      try {
+        const userId = localStorage.getItem('userId')
+        if (userId) {
+          const submissionResponse = await fetch(`/api/content/problems/${problem.slug}/submit`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              code: code,
+              language: language,
+              status: 'wrong_answer' // or other appropriate status
+            })
+          })
+          
+          if (!submissionResponse.ok) {
+            console.error('Failed to record submission attempt:', await submissionResponse.text())
+          }
+        }
+      } catch (error) {
+        console.error('Error submitting attempt to backend:', error)
+      }
     }
     
     setTestResults({ ...(testResults || { passed: 0, total: 0, cases: [] }), accepted })
