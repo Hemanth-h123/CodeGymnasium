@@ -21,8 +21,26 @@ export default function ChallengesPage() {
       return
     }
     
-    // Load published challenges
-    setChallenges(challengeStore.getPublished())
+    // Load published challenges from API
+    const fetchChallenges = async () => {
+      try {
+        // Get user email from localStorage
+        const userEmail = localStorage.getItem('userEmail')
+        const emailParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : ''
+        
+        const response = await fetch(`/api/content/challenges${emailParam}`)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter to only show active challenges
+          const activeChallenges = data.filter((c: any) => c.isActive)
+          setChallenges(activeChallenges)
+        }
+      } catch (error) {
+        console.error('Error fetching challenges:', error)
+      }
+    }
+    
+    fetchChallenges()
   }, [router])
   
   // Don't render until mounted to prevent hydration mismatch
