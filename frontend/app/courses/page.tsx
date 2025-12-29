@@ -22,16 +22,30 @@ export default function CoursesPage() {
     setIsLoggedIn(loggedIn)
 
     // Load courses and enrollments
-    const loadData = () => {
-      setCourses(courseStore.getPublished())
+    const fetchCourses = async () => {
+      try {
+        // Get user email from localStorage
+        const userEmail = localStorage.getItem('userEmail')
+        const emailParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : ''
+        
+        const response = await fetch(`/api/content/courses${emailParam}`)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter to only show published courses
+          const publishedCourses = data.filter((c: any) => c.isPublished)
+          setCourses(publishedCourses)
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error)
+      }
+      
       if (loggedIn) {
         const enrollments = JSON.parse(localStorage.getItem('enrollments') || '[]')
         setEnrolledIds(enrollments)
       }
     }
-    loadData()
-    window.addEventListener('dataChange', loadData)
-    return () => window.removeEventListener('dataChange', loadData)
+    
+    fetchCourses()
   }, [isLoggedIn])
 
   const handleEnroll = (courseSlug: string, courseId: number, isEnrolled: boolean) => {
