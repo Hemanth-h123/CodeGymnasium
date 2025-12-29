@@ -275,7 +275,24 @@ router.get('/problems', async (req, res) => {
   try {
     const db = getDb()
     if (db) {
-      const rows = await query<any>('SELECT id, title, slug, difficulty, category, to_char(created_at, \'YYYY-MM-DD\') as "createdAt", is_published as "isPublished", COALESCE(total_submissions,0) as submissions, COALESCE(acceptance_rate,0) as "acceptanceRate" FROM problems ORDER BY created_at DESC')
+      const email = String(req.query.email || '')
+      let rows
+      
+      if (email) {
+        // If email is provided, get user's solved status for each problem
+        const userRows = await query<any>('SELECT id FROM users WHERE email=$1', [email])
+        if (userRows.length) {
+          const userId = userRows[0].id
+          rows = await query<any>(`SELECT p.id, p.title, p.slug, p.difficulty, p.category, to_char(p.created_at, 'YYYY-MM-DD') as "createdAt", p.is_published as "isPublished", COALESCE(p.total_submissions,0) as submissions, COALESCE(p.acceptance_rate,0) as "acceptanceRate", COALESCE(ups.is_solved, false) as solved FROM problems p LEFT JOIN user_problem_stats ups ON p.id = ups.problem_id AND ups.user_id = $1 ORDER BY p.created_at DESC`, [userId])
+        } else {
+          // User not found, return problems without solved status
+          rows = await query<any>(`SELECT id, title, slug, difficulty, category, to_char(created_at, 'YYYY-MM-DD') as "createdAt", is_published as "isPublished", COALESCE(total_submissions,0) as submissions, COALESCE(acceptance_rate,0) as "acceptanceRate", false as solved FROM problems ORDER BY created_at DESC`)
+        }
+      } else {
+        // No email provided, return problems without solved status
+        rows = await query<any>(`SELECT id, title, slug, difficulty, category, to_char(created_at, 'YYYY-MM-DD') as "createdAt", is_published as "isPublished", COALESCE(total_submissions,0) as submissions, COALESCE(acceptance_rate,0) as "acceptanceRate", false as solved FROM problems ORDER BY created_at DESC`)
+      }
+      
       return res.json(rows as Problem[])
     }
   } catch (e) {}
@@ -1497,8 +1514,77 @@ router.get('/reports/:type', async (req, res) => {
       return res.json(rows as Report[])
     }
   } catch (e) {}
-  
+
   return res.json([])
+})
+
+// Problem Submission API
+router.post('/problems/:slug/submit', async (req, res) => {
+  const slug = String(req.params.slug)
+  const { userId, code, language, status } = req.body || {}
+  
+  if (!userId || !code || !language || !status) {
+    return res.status(400).json({ message: 'Missing required fields: userId, code, language, status' })
+  }
+  
+  try {
+    const db = getDb()
+    if (db) {
+      // Get user and problem IDs
+      const userRows = await query<any>('SELECT id FROM users WHERE id=$1', [userId])
+      if (!userRows.length) return res.status(404).json({ message: 'User not found' })
+      
+      const problemRows = await query<any>('SELECT id FROM problems WHERE slug=$1', [slug])
+      if (!problemRows.length) return res.status(404).json({ message: 'Problem not found' })
+      
+      const userIdFromDb = userRows[0].id
+      const problemId = problemRows[0].id
+      
+      // Insert submission record
+      const submissionResult = await query<any>(`INSERT INTO submissions (user_id, problem_id, language, code, status, submitted_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`, [
+        userIdFromDb,
+        problemId,
+        language,
+        code,
+        status
+      ])
+      
+      // Update problem statistics
+      await query('UPDATE problems SET total_submissions = total_submissions + 1 WHERE id=$1', [problemId])
+      
+      // Update user problem stats
+      const isAccepted = status === 'accepted'
+      await query(`INSERT INTO user_problem_stats (user_id, problem_id, attempts_count, is_solved, last_attempted_at) 
+                  VALUES ($1, $2, 1, $3, NOW()) 
+                  ON CONFLICT (user_id, problem_id) 
+                  DO UPDATE SET 
+                    attempts_count = user_problem_stats.attempts_count + 1,
+                    is_solved = CASE WHEN $3 THEN true ELSE user_problem_stats.is_solved END,
+                    last_attempted_at = NOW(),
+                    best_submission_id = CASE WHEN $3 THEN $4 ELSE user_problem_stats.best_submission_id END`, [
+        userIdFromDb,
+        problemId,
+        isAccepted,
+        submissionResult[0].id
+      ])
+      
+      // If the submission was accepted, update user's problem solved count
+      if (isAccepted) {
+        await query(`UPDATE users SET problems_solved = problems_solved + 1 WHERE id=$1`, [userIdFromDb])
+      }
+      
+      return res.status(201).json({ 
+        submissionId: submissionResult[0].id,
+        message: 'Submission recorded successfully',
+        accepted: isAccepted
+      })
+    }
+  } catch (e) {
+    console.error('Error processing submission:', e)
+    return res.status(500).json({ message: 'Failed to process submission' })
+  }
+  
+  return res.status(500).json({ message: 'Failed to process submission' })
 })
 
 // Leaderboard API
