@@ -61,8 +61,6 @@ type Problem = {
   spaceComplexity?: string
 }
 
-const courses: Course[] = []
-const problems: Problem[] = []
 
 const router = Router()
 const topicProgress = new Map<string, Set<string>>()
