@@ -45,11 +45,9 @@ export function Header() {
   useEffect(() => {
     async function syncData() {
       try {
-        const base = process.env.NEXT_PUBLIC_API_URL || window.location.origin
-        if (!base) return
         const [coursesRes, problemsRes] = await Promise.all([
-          fetch(`${base}/api/content/courses`),
-          fetch(`${base}/api/content/problems`)
+          fetch('/api/content/courses'),
+          fetch('/api/content/problems')
         ])
         if (coursesRes.ok) {
           const courses = await coursesRes.json()
