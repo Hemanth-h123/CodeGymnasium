@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, Request, Response } from 'express'
 import { getDb, query } from '../db'
 import { Script, createContext } from 'vm'
 import { spawn, spawnSync } from 'child_process'
@@ -66,6 +66,10 @@ const router = Router()
 const topicProgress = new Map<string, Set<string>>()
 const topicExtras = new Map<string, { examples: any[]; problemIds: number[] }>()
 
+// In-memory arrays for fallback when DB is not available
+let courses: Course[] = []
+let problems: Problem[] = []
+
 // Report interface to match frontend
 interface Report {
   id: number
@@ -80,7 +84,7 @@ interface Report {
   createdAt: string
 }
 
-router.get('/courses', async (req, res) => {
+router.get('/courses', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -91,7 +95,7 @@ router.get('/courses', async (req, res) => {
   return res.json(courses)
 })
 
-router.post('/courses', async (req, res) => {
+router.post('/courses', async (req: Request, res: Response) => {
   const body = req.body || {}
   if (!body.title || !body.slug || !body.category || !body.difficulty || !body.duration) {
     return res.status(400).json({ message: 'Missing required fields' })
@@ -164,7 +168,7 @@ router.post('/courses', async (req, res) => {
   res.status(201).json(newCourse)
 })
 
-router.patch('/courses/:id/publish', (req, res) => {
+router.patch('/courses/:id/publish', (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const course = courses.find(c => c.id === id)
   if (!course) return res.status(404).json({ message: 'Not found' })
@@ -172,7 +176,7 @@ router.patch('/courses/:id/publish', (req, res) => {
   res.json(course)
 })
 
-router.patch('/courses/:id', async (req, res) => {
+router.patch('/courses/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const updates = req.body || {}
   const course = courses.find(c => c.id === id)
@@ -206,7 +210,7 @@ router.patch('/courses/:id', async (req, res) => {
   return res.json(course)
 })
 
-router.delete('/courses/:id', async (req, res) => {
+router.delete('/courses/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const index = courses.findIndex(c => c.id === id)
   if (index !== -1) courses.splice(index, 1)
@@ -220,7 +224,7 @@ router.delete('/courses/:id', async (req, res) => {
 })
 
 // Slug-based course operations (persistent)
-router.patch('/courses/by-slug/:slug', async (req, res) => {
+router.patch('/courses/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const updates = req.body || {}
   try {
@@ -255,7 +259,7 @@ router.patch('/courses/by-slug/:slug', async (req, res) => {
   return res.json(course)
 })
 
-router.delete('/courses/by-slug/:slug', async (req, res) => {
+router.delete('/courses/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   try {
     const db = getDb()
@@ -269,7 +273,7 @@ router.delete('/courses/by-slug/:slug', async (req, res) => {
   return res.status(204).send()
 })
 
-router.get('/problems', async (req, res) => {
+router.get('/problems', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -297,7 +301,7 @@ router.get('/problems', async (req, res) => {
   return res.json(problems)
 })
 
-router.post('/problems', async (req, res) => {
+router.post('/problems', async (req: Request, res: Response) => {
   const body = req.body || {}
   if (!body.title || !body.slug || !body.difficulty || !body.category) {
     return res.status(400).json({ message: 'Missing required fields' })
@@ -348,7 +352,7 @@ router.post('/problems', async (req, res) => {
   res.status(201).json(newProblem)
 })
 
-router.patch('/problems/:id/publish', (req, res) => {
+router.patch('/problems/:id/publish', (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const problem = problems.find(p => p.id === id)
   if (!problem) return res.status(404).json({ message: 'Not found' })
@@ -356,7 +360,7 @@ router.patch('/problems/:id/publish', (req, res) => {
   return res.json(problem)
 })
 
-router.patch('/problems/:id', async (req, res) => {
+router.patch('/problems/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const updates = req.body || {}
   const problem = problems.find(p => p.id === id)
@@ -386,7 +390,7 @@ router.patch('/problems/:id', async (req, res) => {
   return res.json(problem)
 })
 
-router.delete('/problems/:id', async (req, res) => {
+router.delete('/problems/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const index = problems.findIndex(p => p.id === id)
   if (index !== -1) problems.splice(index, 1)
@@ -400,7 +404,7 @@ router.delete('/problems/:id', async (req, res) => {
 })
 
 // Slug-based problem operations (persistent)
-router.patch('/problems/by-slug/:slug', async (req, res) => {
+router.patch('/problems/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const updates = req.body || {}
   try {
@@ -431,7 +435,7 @@ router.patch('/problems/by-slug/:slug', async (req, res) => {
   return res.json(problem)
 })
 
-router.delete('/problems/by-slug/:slug', async (req, res) => {
+router.delete('/problems/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   try {
     const db = getDb()
@@ -472,7 +476,7 @@ interface DiscussionComment {
   updatedAt: string
 }
 
-router.get('/discussions', async (req, res) => {
+router.get('/discussions', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -483,7 +487,7 @@ router.get('/discussions', async (req, res) => {
   return res.json([])
 })
 
-router.post('/discussions', async (req, res) => {
+router.post('/discussions', async (req: Request, res: Response) => {
   const body = req.body || {}
   if (!body.title || !body.content || !body.category || !body.authorId) {
     return res.status(400).json({ message: 'Missing required fields: title, content, category, authorId' })
@@ -510,7 +514,7 @@ router.post('/discussions', async (req, res) => {
   return res.status(500).json({ message: 'Failed to create discussion' })
 })
 
-router.get('/discussions/:id', async (req, res) => {
+router.get('/discussions/:id', async (req: Request, res: Response) => {
   const id = String(req.params.id)
   try {
     const db = getDb()
@@ -529,7 +533,7 @@ router.get('/discussions/:id', async (req, res) => {
   return res.status(404).json({ message: 'Discussion not found' })
 })
 
-router.get('/discussions/:id/comments', async (req, res) => {
+router.get('/discussions/:id/comments', async (req: Request, res: Response) => {
   const id = String(req.params.id)
   try {
     const db = getDb()
@@ -542,7 +546,7 @@ router.get('/discussions/:id/comments', async (req, res) => {
   return res.json([])
 })
 
-router.post('/discussions/:id/comments', async (req, res) => {
+router.post('/discussions/:id/comments', async (req: Request, res: Response) => {
   const id = String(req.params.id)
   const body = req.body || {}
   if (!body.content || !body.userId) {
@@ -569,7 +573,7 @@ router.post('/discussions/:id/comments', async (req, res) => {
 })
 
 // Discussion categories API
-router.get('/discussion-categories', async (req, res) => {
+router.get('/discussion-categories', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -582,7 +586,7 @@ router.get('/discussion-categories', async (req, res) => {
 })
 
 // Homepage statistics API
-router.get('/homepage-stats', async (req, res) => {
+router.get('/homepage-stats', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -604,7 +608,7 @@ router.get('/homepage-stats', async (req, res) => {
 })
 
 // Update homepage stats when users register
-router.post('/homepage-stats/users', async (req, res) => {
+router.post('/homepage-stats/users', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -620,7 +624,7 @@ router.post('/homepage-stats/users', async (req, res) => {
 })
 
 // Update homepage stats when content is created
-router.post('/homepage-stats/:type', async (req, res) => {
+router.post('/homepage-stats/:type', async (req: Request, res: Response) => {
   const type = req.params.type
   const validTypes = ['courses', 'topics', 'problems']
   if (!validTypes.includes(type)) {
@@ -642,7 +646,7 @@ router.post('/homepage-stats/:type', async (req, res) => {
 })
 
 // Admin dashboard metrics API
-router.get('/admin/metrics', async (req, res) => {
+router.get('/admin/metrics', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -681,7 +685,7 @@ router.get('/admin/metrics', async (req, res) => {
 })
 
 // Update metrics when users interact with the platform
-router.post('/admin/metrics/update', async (req, res) => {
+router.post('/admin/metrics/update', async (req: Request, res: Response) => {
   const { metricType, increment = 1 } = req.body
   
   if (!metricType) {
@@ -723,7 +727,7 @@ interface Challenge {
   createdBy?: string
 }
 
-router.get('/challenges', async (req, res) => {
+router.get('/challenges', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -736,7 +740,7 @@ router.get('/challenges', async (req, res) => {
   return res.json([])
 })
 
-router.post('/challenges', async (req, res) => {
+router.post('/challenges', async (req: Request, res: Response) => {
   const body = req.body || {}
   if (!body.title || !body.slug || !body.type || !body.difficulty || !body.startTime || !body.endTime) {
     return res.status(400).json({ message: 'Missing required fields: title, slug, type, difficulty, startTime, endTime' })
@@ -774,7 +778,7 @@ router.post('/challenges', async (req, res) => {
   return res.status(500).json({ message: 'Failed to create challenge' })
 })
 
-router.patch('/challenges/:id/publish', async (req, res) => {
+router.patch('/challenges/:id/publish', async (req: Request, res: Response) => {
   const id = req.params.id
   try {
     const db = getDb()
@@ -802,7 +806,7 @@ router.patch('/challenges/:id/publish', async (req, res) => {
 })
 
 // Update challenges count if not exists in homepage_stats
-router.get('/ensure-challenges-count', async (req, res) => {
+router.get('/ensure-challenges-count', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -823,7 +827,7 @@ router.get('/ensure-challenges-count', async (req, res) => {
 
 export default router
 // Topic progress
-router.post('/topics/:id/complete', async (req, res) => {
+router.post('/topics/:id/complete', async (req: Request, res: Response) => {
   const email = (req.body && req.body.email) || req.header('X-User-Email') || ''
   const topicSlug = String(req.params.id)
   if (!email) return res.status(400).json({ message: 'Missing email' })
@@ -848,7 +852,7 @@ router.post('/topics/:id/complete', async (req, res) => {
 })
 
 // Code execution (basic, JS sandbox + Python child process)
-router.post('/code/execute', async (req, res) => {
+router.post('/code/execute', async (req: Request, res: Response) => {
   const { language = 'javascript', code = '', input = '' } = req.body || {}
   const started = Date.now()
   try {
@@ -1317,7 +1321,7 @@ To see the actual rendered output, save this code to an .html file and open it i
   }
 })
 
-router.get('/topics/progress', async (req, res) => {
+router.get('/topics/progress', async (req: Request, res: Response) => {
   const email = String(req.query.email || '')
   if (!email) return res.status(400).json({ message: 'Missing email' })
   try {
@@ -1335,20 +1339,20 @@ router.get('/topics/progress', async (req, res) => {
 })
 
 // Topic extras (examples and associated problem IDs)
-router.get('/topics/:id/extras', (req, res) => {
+router.get('/topics/:id/extras', (req: Request, res: Response) => {
   const topicId = String(req.params.id)
   const v = topicExtras.get(topicId) || { examples: [], problemIds: [] }
   return res.json(v)
 })
 
-router.post('/topics/:id/extras', (req, res) => {
+router.post('/topics/:id/extras', (req: Request, res: Response) => {
   const topicId = String(req.params.id)
   const { examples = [], problemIds = [] } = req.body || {}
   const v = { examples, problemIds }
   topicExtras.set(topicId, v)
   return res.status(200).json(v)
 })
-router.get('/courses/:slug/topics', async (req, res) => {
+router.get('/courses/:slug/topics', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   try {
     const db = getDb()
@@ -1366,7 +1370,7 @@ router.get('/courses/:slug/topics', async (req, res) => {
   return res.json(course?.courseTopics || [])
 })
 
-router.put('/courses/:slug/topics', async (req, res) => {
+router.put('/courses/:slug/topics', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const newTopics: CourseTopic[] = (req.body || []) as CourseTopic[]
   try {
@@ -1399,7 +1403,7 @@ router.put('/courses/:slug/topics', async (req, res) => {
 })
 
 // Report Management
-router.get('/reports', async (req, res) => {
+router.get('/reports', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -1411,7 +1415,7 @@ router.get('/reports', async (req, res) => {
   return res.json([])
 })
 
-router.post('/reports', async (req, res) => {
+router.post('/reports', async (req: Request, res: Response) => {
   const body = req.body || {}
   if (!body.userId || !body.type || !body.itemId || !body.reason || !body.description) {
     return res.status(400).json({ message: 'Missing required fields: userId, type, itemId, reason, description' })
@@ -1446,7 +1450,7 @@ router.post('/reports', async (req, res) => {
   return res.status(500).json({ message: 'Failed to create report' })
 })
 
-router.patch('/reports/:id', async (req, res) => {
+router.patch('/reports/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const updates = req.body || {}
   
@@ -1485,7 +1489,7 @@ router.patch('/reports/:id', async (req, res) => {
   return res.status(500).json({ message: 'Failed to update report' })
 })
 
-router.delete('/reports/:id', async (req, res) => {
+router.delete('/reports/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   
   try {
@@ -1499,7 +1503,7 @@ router.delete('/reports/:id', async (req, res) => {
   return res.status(500).json({ message: 'Failed to delete report' })
 })
 
-router.get('/reports/:type', async (req, res) => {
+router.get('/reports/:type', async (req: Request, res: Response) => {
   const type = req.params.type
   if (!['course', 'problem', 'challenge'].includes(type)) {
     return res.status(400).json({ message: 'Invalid report type' })
@@ -1517,7 +1521,7 @@ router.get('/reports/:type', async (req, res) => {
 })
 
 // Problem Submission API
-router.post('/problems/:slug/submit', async (req, res) => {
+router.post('/problems/:slug/submit', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const { userId, code, language, status } = req.body || {}
   
@@ -1586,7 +1590,7 @@ router.post('/problems/:slug/submit', async (req, res) => {
 })
 
 // Leaderboard API
-router.get('/leaderboard', async (req, res) => {
+router.get('/leaderboard', async (req: Request, res: Response) => {
   try {
     const db = getDb()
     if (db) {
@@ -1600,7 +1604,7 @@ router.get('/leaderboard', async (req, res) => {
   return res.json([])
 })
 
-router.get('/leaderboard/:period', async (req, res) => {
+router.get('/leaderboard/:period', async (req: Request, res: Response) => {
   const period = req.params.period
   const validPeriods = ['daily', 'weekly', 'monthly', 'all']
   if (!validPeriods.includes(period)) {
