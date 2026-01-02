@@ -66,8 +66,83 @@ const topicProgress = new Map<string, Set<string>>()
 const topicExtras = new Map<string, { examples: any[]; problemIds: number[] }>()
 
 // In-memory arrays for fallback when DB is not available
-let courses: Course[] = []
-let problems: Problem[] = []
+// Initialize courses and problems from files if they exist, otherwise start empty
+let courses: Course[] = [];
+let problems: Problem[] = [];
+
+// File paths for persistence
+const COURSES_FILE = path.join(__dirname, '../../data/courses.json');
+const PROBLEMS_FILE = path.join(__dirname, '../../data/problems.json');
+
+// Ensure data directory exists
+const DATA_DIR = path.join(__dirname, '../../data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Load existing data from files if they exist
+try {
+  if (fs.existsSync(COURSES_FILE)) {
+    const coursesData = fs.readFileSync(COURSES_FILE, 'utf8');
+    courses = JSON.parse(coursesData);
+  }
+} catch (e) {
+  console.warn('Could not load courses from file, starting with empty array:', e);
+  courses = [];
+}
+
+try {
+  if (fs.existsSync(PROBLEMS_FILE)) {
+    const problemsData = fs.readFileSync(PROBLEMS_FILE, 'utf8');
+    problems = JSON.parse(problemsData);
+  }
+} catch (e) {
+  console.warn('Could not load problems from file, starting with empty array:', e);
+  problems = [];
+}
+
+// Function to save courses to file
+function saveCoursesToFile() {
+  try {
+    fs.writeFileSync(COURSES_FILE, JSON.stringify(courses, null, 2));
+  } catch (e) {
+    console.error('Could not save courses to file:', e);
+  }
+}
+
+// Function to save problems to file
+function saveProblemsToFile() {
+  try {
+    fs.writeFileSync(PROBLEMS_FILE, JSON.stringify(problems, null, 2));
+  } catch (e) {
+    console.error('Could not save problems to file:', e);
+  }
+}
+
+// Helper functions to save data after operations
+function addCourse(course: Course) {
+  courses.push(course);
+  saveCoursesToFile();
+}
+
+function removeCourse(index: number) {
+  if (index !== -1) {
+    courses.splice(index, 1);
+    saveCoursesToFile();
+  }
+}
+
+function addProblem(problem: Problem) {
+  problems.push(problem);
+  saveProblemsToFile();
+}
+
+function removeProblem(index: number) {
+  if (index !== -1) {
+    problems.splice(index, 1);
+    saveProblemsToFile();
+  }
+}
 
 // Report interface to match frontend
 interface Report {
@@ -83,8 +158,25 @@ interface Report {
   createdAt: string
 }
 
+// Get all courses
 router.get('/courses', async (req: Request, res: Response) => {
   return res.json(courses)
+})
+
+// Get a single course by ID
+router.get('/courses/:id', async (req: Request, res: Response) => {
+  const id = Number(req.params.id)
+  const course = courses.find(c => c.id === id)
+  if (!course) return res.status(404).json({ message: 'Course not found' })
+  return res.json(course)
+})
+
+// Get a single course by slug
+router.get('/courses/:slug', async (req: Request, res: Response) => {
+  const slug = String(req.params.slug)
+  const course = courses.find(c => c.slug === slug)
+  if (!course) return res.status(404).json({ message: 'Course not found' })
+  return res.json(course)
 })
 
 router.post('/courses', async (req: Request, res: Response) => {
@@ -114,7 +206,7 @@ router.post('/courses', async (req: Request, res: Response) => {
     courseExamples: body.courseExamples || [],
     associatedProblems: body.associatedProblems || []
   }
-  courses.push(newCourse)
+  addCourse(newCourse)
   // Database functionality removed
   res.status(201).json(newCourse)
 })
@@ -150,7 +242,7 @@ router.patch('/courses/:id', async (req: Request, res: Response) => {
 router.delete('/courses/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const index = courses.findIndex(c => c.id === id)
-  if (index !== -1) courses.splice(index, 1)
+  removeCourse(index)
   // Database functionality removed
   return res.status(204).send()
 })
@@ -178,7 +270,7 @@ router.delete('/courses/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   // Database functionality removed
   const index = courses.findIndex(c => c.slug === slug)
-  if (index !== -1) courses.splice(index, 1)
+  removeCourse(index)
   return res.status(204).send()
 })
 
@@ -214,7 +306,7 @@ router.post('/problems', async (req: Request, res: Response) => {
     timeComplexity: body.timeComplexity,
     spaceComplexity: body.spaceComplexity
   }
-  problems.push(newProblem)
+  addProblem(newProblem)
   // Database functionality removed
   res.status(201).json(newProblem)
 })
@@ -248,7 +340,7 @@ router.patch('/problems/:id', async (req: Request, res: Response) => {
 router.delete('/problems/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const index = problems.findIndex(p => p.id === id)
-  if (index !== -1) problems.splice(index, 1)
+  removeProblem(index)
   // Database functionality removed
   return res.status(204).send()
 })
@@ -274,7 +366,7 @@ router.delete('/problems/by-slug/:slug', async (req: Request, res: Response) => 
   const slug = String(req.params.slug)
   // Database functionality removed
   const index = problems.findIndex(p => p.slug === slug)
-  if (index !== -1) problems.splice(index, 1)
+  removeProblem(index)
   return res.status(204).send()
 })
 
