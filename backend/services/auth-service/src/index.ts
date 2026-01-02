@@ -16,10 +16,10 @@ const PORT = process.env.PORT || process.env.AUTH_SERVICE_PORT || 3001;
 // Middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - more permissive for content API
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 250, // limit each IP to 250 requests per windowMs (increased from 100)
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
@@ -27,7 +27,22 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
+// More permissive rate limit for content API specifically
+const contentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // higher limit for content API
+  message: {
+    error: 'Too many requests to content API, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(limiter);
+
+// Apply more permissive rate limit for content API
+app.use('/api/content', contentLimiter);
+
 app.use(cors({
   origin: [
     'http://localhost:3000',
