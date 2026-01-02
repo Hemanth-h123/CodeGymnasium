@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express'
-import { getDb, query } from '../db'
 import { Script, createContext } from 'vm'
 import { spawn, spawnSync } from 'child_process'
 import fs from 'fs'
@@ -85,13 +84,6 @@ interface Report {
 }
 
 router.get('/courses', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>('SELECT id, title, slug, description, category, difficulty, COALESCE(estimated_duration_hours,0) as duration, COALESCE(enrollment_count,0) as enrolled, COALESCE(rating_average,0) as rating, COALESCE(thumbnail_url, \'📚\') as thumbnail, is_published as "isPublished", to_char(created_at, \'YYYY-MM-DD\') as "createdAt" FROM courses ORDER BY created_at DESC')
-      return res.json(rows as Course[])
-    }
-  } catch (e) {}
   return res.json(courses)
 })
 
@@ -123,48 +115,7 @@ router.post('/courses', async (req: Request, res: Response) => {
     associatedProblems: body.associatedProblems || []
   }
   courses.push(newCourse)
-  try {
-    const db = getDb()
-    if (db) {
-      await query('INSERT INTO courses (title, slug, description, category, difficulty, estimated_duration_hours, thumbnail_url, is_published) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [
-        newCourse.title,
-        newCourse.slug,
-        newCourse.description,
-        newCourse.category,
-        newCourse.difficulty,
-        newCourse.duration,
-        newCourse.thumbnail,
-        newCourse.isPublished,
-      ])
-      const courseRows = await query<any>('SELECT id FROM courses WHERE slug=$1', [newCourse.slug])
-      const courseId = courseRows[0]?.id
-      if (courseId && Array.isArray(newCourse.courseTopics)) {
-        for (const t of newCourse.courseTopics) {
-          await query('INSERT INTO topics (course_id, title, slug, description, content, video_url, order_index, estimated_duration_minutes, is_published) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [
-            courseId,
-            t.title,
-            String(t.id),
-            t.description || '',
-            t.content || '',
-            t.videoUrl || null,
-            t.order,
-            t.duration || null,
-            true,
-          ])
-        }
-      }
-      
-      // Increment courses and topics counts
-      try {
-        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['courses']);
-        if (Array.isArray(newCourse.courseTopics)) {
-          await query('UPDATE homepage_stats SET count = count + $1 WHERE stat_type = $2', [newCourse.courseTopics.length, 'topics']);
-        }
-      } catch (statsError) {
-        console.error('Error updating homepage stats:', statsError);
-      }
-    }
-  } catch (e) {}
+  // Database functionality removed
   res.status(201).json(newCourse)
 })
 
@@ -191,21 +142,7 @@ router.patch('/courses/:id', async (req: Request, res: Response) => {
       isPublished: updates.isPublished ?? course.isPublished,
     })
   }
-  try {
-    const db = getDb()
-    if (db) {
-      await query('UPDATE courses SET title=$1, description=$2, category=$3, difficulty=$4, estimated_duration_hours=$5, thumbnail_url=$6, is_published=$7, updated_at=NOW() WHERE id=$8', [
-        updates.title ?? course?.title,
-        updates.description ?? course?.description,
-        updates.category ?? course?.category,
-        updates.difficulty ?? course?.difficulty,
-        updates.duration ?? course?.duration,
-        updates.thumbnail ?? course?.thumbnail,
-        updates.isPublished ?? course?.isPublished,
-        id,
-      ])
-    }
-  } catch (e) {}
+  // Database functionality removed
   if (!course) return res.status(404).json({ message: 'Not found' })
   return res.json(course)
 })
@@ -214,12 +151,7 @@ router.delete('/courses/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const index = courses.findIndex(c => c.id === id)
   if (index !== -1) courses.splice(index, 1)
-  try {
-    const db = getDb()
-    if (db) {
-      await query('DELETE FROM courses WHERE id=$1', [id])
-    }
-  } catch (e) {}
+  // Database functionality removed
   return res.status(204).send()
 })
 
@@ -227,24 +159,7 @@ router.delete('/courses/:id', async (req: Request, res: Response) => {
 router.patch('/courses/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const updates = req.body || {}
-  try {
-    const db = getDb()
-    if (db) {
-      await query('UPDATE courses SET title=$1, description=$2, category=$3, difficulty=$4, estimated_duration_hours=$5, thumbnail_url=$6, is_published=$7, updated_at=NOW() WHERE slug=$8', [
-        updates.title,
-        updates.description,
-        updates.category,
-        updates.difficulty,
-        updates.duration,
-        updates.thumbnail,
-        updates.isPublished,
-        slug,
-      ])
-      const rows = await query<any>('SELECT id, title, slug, description, category, difficulty, COALESCE(estimated_duration_hours,0) as duration, COALESCE(thumbnail_url,\'📚\') as thumbnail, is_published as "isPublished" FROM courses WHERE slug=$1', [slug])
-      if (!rows.length) return res.status(404).json({ message: 'Not found' })
-      return res.json(rows[0])
-    }
-  } catch (e) {}
+  // Database functionality removed
   const course = courses.find(c => c.slug === slug)
   if (!course) return res.status(404).json({ message: 'Not found' })
   Object.assign(course, {
@@ -261,43 +176,13 @@ router.patch('/courses/by-slug/:slug', async (req: Request, res: Response) => {
 
 router.delete('/courses/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
-  try {
-    const db = getDb()
-    if (db) {
-      await query('DELETE FROM courses WHERE slug=$1', [slug])
-      return res.status(204).send()
-    }
-  } catch (e) {}
+  // Database functionality removed
   const index = courses.findIndex(c => c.slug === slug)
   if (index !== -1) courses.splice(index, 1)
   return res.status(204).send()
 })
 
 router.get('/problems', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const email = String(req.query.email || '')
-      let rows
-      
-      if (email) {
-        // If email is provided, get user's solved status for each problem
-        const userRows = await query<any>('SELECT id FROM users WHERE email=$1', [email])
-        if (userRows.length) {
-          const userId = userRows[0].id
-          rows = await query<any>(`SELECT p.id, p.title, p.slug, p.difficulty, p.category, to_char(p.created_at, 'YYYY-MM-DD') as "createdAt", p.is_published as "isPublished", COALESCE(p.total_submissions,0) as submissions, COALESCE(p.acceptance_rate,0) as "acceptanceRate", COALESCE(ups.is_solved, false) as solved FROM problems p LEFT JOIN user_problem_stats ups ON p.id = ups.problem_id AND ups.user_id = $1 ORDER BY p.created_at DESC`, [userId])
-        } else {
-          // User not found, return problems without solved status
-          rows = await query<any>(`SELECT id, title, slug, difficulty, category, to_char(created_at, 'YYYY-MM-DD') as "createdAt", is_published as "isPublished", COALESCE(total_submissions,0) as submissions, COALESCE(acceptance_rate,0) as "acceptanceRate", false as solved FROM problems ORDER BY created_at DESC`)
-        }
-      } else {
-        // No email provided, return problems without solved status
-        rows = await query<any>(`SELECT id, title, slug, difficulty, category, to_char(created_at, 'YYYY-MM-DD') as "createdAt", is_published as "isPublished", COALESCE(total_submissions,0) as submissions, COALESCE(acceptance_rate,0) as "acceptanceRate", false as solved FROM problems ORDER BY created_at DESC`)
-      }
-      
-      return res.json(rows as Problem[])
-    }
-  } catch (e) {}
   return res.json(problems)
 })
 
@@ -330,25 +215,7 @@ router.post('/problems', async (req: Request, res: Response) => {
     spaceComplexity: body.spaceComplexity
   }
   problems.push(newProblem)
-  try {
-    const db = getDb()
-    if (db) {
-      await query('INSERT INTO problems (title, slug, difficulty, category, is_published) VALUES ($1,$2,$3,$4,$5)', [
-        newProblem.title,
-        newProblem.slug,
-        newProblem.difficulty,
-        newProblem.category,
-        newProblem.isPublished,
-      ])
-      
-      // Increment problems count
-      try {
-        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['problems']);
-      } catch (statsError) {
-        console.error('Error updating homepage stats:', statsError);
-      }
-    }
-  } catch (e) {}
+  // Database functionality removed
   res.status(201).json(newProblem)
 })
 
@@ -373,19 +240,7 @@ router.patch('/problems/:id', async (req: Request, res: Response) => {
       isPublished: updates.isPublished ?? problem.isPublished,
     })
   }
-  try {
-    const db = getDb()
-    if (db) {
-      await query('UPDATE problems SET title=$1, description=$2, category=$3, difficulty=$4, is_published=$5, updated_at=NOW() WHERE id=$6', [
-        updates.title ?? problem?.title,
-        updates.description ?? problem?.description,
-        updates.category ?? problem?.category,
-        updates.difficulty ?? problem?.difficulty,
-        updates.isPublished ?? problem?.isPublished,
-        id,
-      ])
-    }
-  } catch (e) {}
+  // Database functionality removed
   if (!problem) return res.status(404).json({ message: 'Not found' })
   return res.json(problem)
 })
@@ -394,12 +249,7 @@ router.delete('/problems/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const index = problems.findIndex(p => p.id === id)
   if (index !== -1) problems.splice(index, 1)
-  try {
-    const db = getDb()
-    if (db) {
-      await query('DELETE FROM problems WHERE id=$1', [id])
-    }
-  } catch (e) {}
+  // Database functionality removed
   return res.status(204).send()
 })
 
@@ -407,22 +257,7 @@ router.delete('/problems/:id', async (req: Request, res: Response) => {
 router.patch('/problems/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const updates = req.body || {}
-  try {
-    const db = getDb()
-    if (db) {
-      await query('UPDATE problems SET title=$1, description=$2, category=$3, difficulty=$4, is_published=$5, updated_at=NOW() WHERE slug=$6', [
-        updates.title,
-        updates.description,
-        updates.category,
-        updates.difficulty,
-        updates.isPublished,
-        slug,
-      ])
-      const rows = await query<any>('SELECT id, title, slug, difficulty, category, to_char(created_at, \'YYYY-MM-DD\') as "createdAt", is_published as "isPublished" FROM problems WHERE slug=$1', [slug])
-      if (!rows.length) return res.status(404).json({ message: 'Not found' })
-      return res.json(rows[0])
-    }
-  } catch (e) {}
+  // Database functionality removed
   const problem = problems.find(p => p.slug === slug)
   if (!problem) return res.status(404).json({ message: 'Not found' })
   Object.assign(problem, {
@@ -437,13 +272,7 @@ router.patch('/problems/by-slug/:slug', async (req: Request, res: Response) => {
 
 router.delete('/problems/by-slug/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
-  try {
-    const db = getDb()
-    if (db) {
-      await query('DELETE FROM problems WHERE slug=$1', [slug])
-      return res.status(204).send()
-    }
-  } catch (e) {}
+  // Database functionality removed
   const index = problems.findIndex(p => p.slug === slug)
   if (index !== -1) problems.splice(index, 1)
   return res.status(204).send()
@@ -477,13 +306,8 @@ interface DiscussionComment {
 }
 
 router.get('/discussions', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>('SELECT d.id, d.title, d.content, d.category, d.tags, d.views, d.replies, d.likes, d.created_at as "createdAt", d.updated_at as "updatedAt", u.username as author FROM discussions d JOIN users u ON d.user_id = u.id ORDER BY d.created_at DESC')
-      return res.json(rows)
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.json([])
   return res.json([])
 })
 
@@ -493,55 +317,24 @@ router.post('/discussions', async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Missing required fields: title, content, category, authorId' })
   }
   
-  try {
-    const db = getDb()
-    if (db) {
-      const result = await query<any>('INSERT INTO discussions (user_id, title, content, category, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id, title, content, category, tags, views, replies, likes, created_at as "createdAt", updated_at as "updatedAt"', [
-        body.authorId,
-        body.title,
-        body.content,
-        body.category,
-        body.tags || []
-      ])
-      
-      // Update category count
-      await query('INSERT INTO discussion_category_counts (category, count) VALUES ($1, 1) ON CONFLICT (category) DO UPDATE SET count = discussion_category_counts.count + 1', [body.category])
-      
-      return res.status(201).json(result[0])
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.status(500).json({ message: 'Database functionality removed' })
   
   return res.status(500).json({ message: 'Failed to create discussion' })
 })
 
 router.get('/discussions/:id', async (req: Request, res: Response) => {
   const id = String(req.params.id)
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>('SELECT d.id, d.title, d.content, d.category, d.tags, d.views, d.replies, d.likes, d.created_at as "createdAt", d.updated_at as "updatedAt", u.username as author FROM discussions d JOIN users u ON d.user_id = u.id WHERE d.id = $1', [id])
-      if (rows.length === 0) return res.status(404).json({ message: 'Discussion not found' })
-      
-      // Increment views
-      await query('UPDATE discussions SET views = views + 1 WHERE id = $1', [id])
-      rows[0].views += 1
-      
-      return res.json(rows[0])
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.status(404).json({ message: 'Discussion not found' })
   
   return res.status(404).json({ message: 'Discussion not found' })
 })
 
 router.get('/discussions/:id/comments', async (req: Request, res: Response) => {
   const id = String(req.params.id)
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>('SELECT dc.id, dc.content, dc.likes, dc.created_at as "createdAt", u.username as author FROM discussion_comments dc JOIN users u ON dc.user_id = u.id WHERE dc.discussion_id = $1 ORDER BY dc.created_at ASC', [id])
-      return res.json(rows)
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.json([])
   
   return res.json([])
 })
@@ -553,51 +346,29 @@ router.post('/discussions/:id/comments', async (req: Request, res: Response) => 
     return res.status(400).json({ message: 'Missing required fields: content, userId' })
   }
   
-  try {
-    const db = getDb()
-    if (db) {
-      const result = await query<any>('INSERT INTO discussion_comments (discussion_id, user_id, content) VALUES ($1, $2, $3) RETURNING id, content, likes, created_at as "createdAt"', [
-        id,
-        body.userId,
-        body.content
-      ])
-      
-      // Update discussion reply count
-      await query('UPDATE discussions SET replies = replies + 1 WHERE id = $1', [id])
-      
-      return res.status(201).json(result[0])
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.status(500).json({ message: 'Database functionality removed' })
   
   return res.status(500).json({ message: 'Failed to add comment' })
 })
 
 // Discussion categories API
 router.get('/discussion-categories', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>('SELECT category, count FROM discussion_category_counts ORDER BY count DESC')
-      return res.json(rows)
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.json([])
   
   return res.json([])
 })
 
 // Homepage statistics API
 router.get('/homepage-stats', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>('SELECT stat_type, count FROM homepage_stats')
-      const stats: { [key: string]: number } = {}
-      rows.forEach(row => {
-        stats[row.stat_type] = row.count
-      })
-      return res.json(stats)
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.json({
+    active_learners: 0,
+    courses: 0,
+    topics: 0,
+    problems: 0
+  })
   
   return res.json({
     active_learners: 0,
@@ -609,16 +380,8 @@ router.get('/homepage-stats', async (req: Request, res: Response) => {
 
 // Update homepage stats when users register
 router.post('/homepage-stats/users', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['active_learners'])
-      
-      // Get updated count
-      const rows = await query<any>('SELECT count FROM homepage_stats WHERE stat_type = $1', ['active_learners'])
-      return res.json({ count: rows[0]?.count || 0 })
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.json({ count: 0 })
   
   return res.status(500).json({ message: 'Failed to update user count' })
 })
@@ -631,50 +394,20 @@ router.post('/homepage-stats/:type', async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Invalid type. Valid values: courses, topics, problems' })
   }
   
-  try {
-    const db = getDb()
-    if (db) {
-      await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', [type])
-      
-      // Get updated count
-      const rows = await query<any>('SELECT count FROM homepage_stats WHERE stat_type = $1', [type])
-      return res.json({ count: rows[0]?.count || 0 })
-    }
-  } catch (e) {}
+  // Database functionality removed
+  return res.json({ count: 0 })
   
   return res.status(500).json({ message: 'Failed to update content count' })
 })
 
 // Admin dashboard metrics API
 router.get('/admin/metrics', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      // Calculate daily active users (users who have logged in today)
-      const dailyActiveUsers = await query<any>(`SELECT COUNT(DISTINCT id) as count FROM users WHERE DATE(last_login_at) = CURRENT_DATE OR DATE(created_at) = CURRENT_DATE`)
-      
-      // Calculate average session time (placeholder - in a real implementation, this would track actual session times)
-      const avgSessionTime = await query<any>(`SELECT COALESCE(AVG(0), 0) as avg_time FROM users`) // Placeholder calculation
-      
-      // Calculate problem solve rate (percentage of problems solved by users)
-      const problemSolveRate = await query<any>(`SELECT 
-        CASE 
-          WHEN COUNT(*) > 0 THEN 
-            ROUND(COALESCE(SUM(CASE WHEN status = 'solved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 0), 2)
-          ELSE 0 
-        END as solve_rate
-        FROM user_problem_submissions`)
-      
-      // Return metrics with defaults if queries fail
-      return res.json({
-        dailyActiveUsers: dailyActiveUsers[0]?.count || 0,
-        avgSessionTime: Math.floor((avgSessionTime[0]?.avg_time || 0) / 60) + ' min', // Convert to minutes
-        problemSolveRate: problemSolveRate[0]?.solve_rate || 0 + '%'
-      })
-    }
-  } catch (e) {
-    console.error('Error fetching admin metrics:', e)
-  }
+  // Database functionality removed
+  return res.json({
+    dailyActiveUsers: 0,
+    avgSessionTime: '0 min',
+    problemSolveRate: '0%'
+  })
   
   // Return default values if anything fails
   return res.json({
@@ -728,15 +461,8 @@ interface Challenge {
 }
 
 router.get('/challenges', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>(`SELECT id, title, slug, description, type, difficulty, start_time as "startTime", end_time as "endTime", is_active as "isActive", is_ranked as "isRanked", max_participants as "maxParticipants", prize_description as "prizeDescription", total_participants as "totalParticipants", to_char(created_at, 'YYYY-MM-DD') as "createdAt" FROM challenges ORDER BY created_at DESC`)
-      return res.json(rows as Challenge[])
-    }
-  } catch (e) {
-    console.error('Error fetching challenges:', e)
-  }
+  // Database functionality removed
+  return res.json([])
   return res.json([])
 })
 
@@ -746,82 +472,24 @@ router.post('/challenges', async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Missing required fields: title, slug, type, difficulty, startTime, endTime' })
   }
   
-  try {
-    const db = getDb()
-    if (db) {
-      const result = await query<any>(`INSERT INTO challenges (title, slug, description, type, difficulty, start_time, end_time, is_ranked, max_participants, prize_description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, title, slug, description, type, difficulty, start_time as "startTime", end_time as "endTime", is_active as "isActive", is_ranked as "isRanked", max_participants as "maxParticipants", prize_description as "prizeDescription", total_participants as "totalParticipants", created_at`, [
-        body.title,
-        body.slug,
-        body.description || null,
-        body.type,
-        body.difficulty,
-        body.startTime,
-        body.endTime,
-        body.isRanked !== undefined ? body.isRanked : true,
-        body.maxParticipants || null,
-        body.prizeDescription || null
-      ])
-      
-      // Increment challenges count in homepage stats
-      try {
-        await query('UPDATE homepage_stats SET count = count + 1 WHERE stat_type = $1', ['challenges']);
-      } catch (statsError) {
-        console.error('Error updating homepage stats:', statsError);
-      }
-      
-      return res.status(201).json(result[0])
-    }
-  } catch (e) {
-    console.error('Error creating challenge:', e)
-  }
+  // Database functionality removed
+  return res.status(500).json({ message: 'Database functionality removed' })
   
   return res.status(500).json({ message: 'Failed to create challenge' })
 })
 
 router.patch('/challenges/:id/publish', async (req: Request, res: Response) => {
   const id = req.params.id
-  try {
-    const db = getDb()
-    if (db) {
-      // Get current challenge status
-      const currentChallenge = await query<any>('SELECT is_active FROM challenges WHERE id = $1', [id])
-      if (!currentChallenge.length) {
-        return res.status(404).json({ message: 'Challenge not found' })
-      }
-      
-      // Toggle the active status
-      const newStatus = !currentChallenge[0].is_active
-      await query('UPDATE challenges SET is_active = $1 WHERE id = $2', [newStatus, id])
-      
-      // Return updated challenge
-      const updatedChallenge = await query<any>(`SELECT id, title, slug, description, type, difficulty, start_time as "startTime", end_time as "endTime", is_active as "isActive", is_ranked as "isRanked", max_participants as "maxParticipants", prize_description as "prizeDescription", total_participants as "totalParticipants", to_char(created_at, 'YYYY-MM-DD') as "createdAt" FROM challenges WHERE id = $1`, [id])
-      
-      return res.json(updatedChallenge[0])
-    }
-  } catch (e) {
-    console.error('Error toggling challenge publish status:', e)
-  }
+  // Database functionality removed
+  return res.status(500).json({ message: 'Database functionality removed' })
   
   return res.status(500).json({ message: 'Failed to toggle challenge publish status' })
 })
 
 // Update challenges count if not exists in homepage_stats
 router.get('/ensure-challenges-count', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      // Check if challenges count exists in homepage_stats
-      const checkResult = await query<any>('SELECT COUNT(*) as count FROM homepage_stats WHERE stat_type = $1', ['challenges'])
-      if (checkResult[0].count === 0) {
-        // Insert challenges count if it doesn't exist
-        await query('INSERT INTO homepage_stats (stat_type, count) VALUES ($1, $2)', ['challenges', 0])
-        return res.json({ message: 'Challenges count initialized' })
-      }
-      return res.json({ message: 'Challenges count already exists' })
-    }
-  } catch (e) {
-    console.error('Error ensuring challenges count:', e)
-  }
+  // Database functionality removed
+  return res.json({ message: 'Database functionality removed' })
   return res.status(500).json({ message: 'Failed to ensure challenges count' })
 })
 
@@ -831,20 +499,7 @@ router.post('/topics/:id/complete', async (req: Request, res: Response) => {
   const email = (req.body && req.body.email) || req.header('X-User-Email') || ''
   const topicSlug = String(req.params.id)
   if (!email) return res.status(400).json({ message: 'Missing email' })
-  try {
-    const db = getDb()
-    if (db) {
-      const userRows = await query<any>('SELECT id FROM users WHERE email=$1', [email])
-      if (!userRows.length) return res.status(404).json({ message: 'User not found' })
-      const userId = userRows[0].id
-      const topicRows = await query<any>('SELECT id FROM topics WHERE slug=$1', [topicSlug])
-      if (!topicRows.length) return res.status(404).json({ message: 'Topic not found' })
-      const topicId = topicRows[0].id
-      await query('INSERT INTO user_topic_progress (user_id, topic_id, is_completed, completed_at) VALUES ($1,$2,true,NOW()) ON CONFLICT (user_id, topic_id) DO UPDATE SET is_completed=EXCLUDED.is_completed, completed_at=EXCLUDED.completed_at, updated_at=NOW()', [userId, topicId])
-      const completedRows = await query<any>('SELECT t.slug FROM user_topic_progress utp JOIN topics t ON utp.topic_id=t.id WHERE utp.user_id=$1 AND utp.is_completed=true', [userId])
-      return res.status(200).json({ completed: completedRows.map(r => String(r.slug)) })
-    }
-  } catch (e) {}
+  // Database functionality removed
   const set = topicProgress.get(email) || new Set<string>()
   set.add(topicSlug)
   topicProgress.set(email, set)
