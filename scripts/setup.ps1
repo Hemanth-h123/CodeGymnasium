@@ -76,7 +76,7 @@ if ($hasDocker) {
     $setupDb = Read-Host "Start databases with Docker? (y/n)"
     if ($setupDb -eq "y") {
         Write-Host "Starting PostgreSQL, MongoDB, Redis, and RabbitMQ..." -ForegroundColor Yellow
-        docker-compose up -d postgres mongodb redis rabbitmq
+        docker-compose up -d mongodb redis rabbitmq
         Write-Host "✅ Databases started successfully" -ForegroundColor Green
         Write-Host "Waiting for databases to be ready..." -ForegroundColor Yellow
         Start-Sleep -Seconds 10
