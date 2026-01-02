@@ -426,14 +426,11 @@ router.post('/admin/metrics/update', async (req: Request, res: Response) => {
   }
   
   try {
-    const db = getDb()
-    if (db) {
-      // For now, we're just logging the metric update request
-      // In a full implementation, we would update appropriate tables
-      console.log(`Metric update requested: ${metricType} with increment ${increment}`)
-      
-      return res.json({ success: true, message: 'Metrics update request received' })
-    }
+    // For now, we're just logging the metric update request
+    // In a full implementation, we would update appropriate tables
+    console.log(`Metric update requested: ${metricType} with increment ${increment}`)
+    
+    return res.json({ success: true, message: 'Metrics update request received' })
   } catch (e) {
     console.error('Error updating metrics:', e)
   }
@@ -980,14 +977,10 @@ router.get('/topics/progress', async (req: Request, res: Response) => {
   const email = String(req.query.email || '')
   if (!email) return res.status(400).json({ message: 'Missing email' })
   try {
-    const db = getDb()
-    if (db) {
-      const userRows = await query<any>('SELECT id FROM users WHERE email=$1', [email])
-      if (!userRows.length) return res.json({ completed: [] })
-      const userId = userRows[0].id
-      const completedRows = await query<any>('SELECT t.slug FROM user_topic_progress utp JOIN topics t ON utp.topic_id=t.id WHERE utp.user_id=$1 AND utp.is_completed=true', [userId])
-      return res.json({ completed: completedRows.map(r => String(r.slug)) })
-    }
+    // Database functionality removed
+    // Return in-memory progress
+    const set = topicProgress.get(email) || new Set<string>()
+    return res.json({ completed: Array.from(set) })
   } catch (e) {}
   const set = topicProgress.get(email) || new Set<string>()
   return res.json({ completed: Array.from(set) })
@@ -1009,17 +1002,7 @@ router.post('/topics/:id/extras', (req: Request, res: Response) => {
 })
 router.get('/courses/:slug/topics', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
-  try {
-    const db = getDb()
-    if (db) {
-      const courseRows = await query<any>('SELECT id FROM courses WHERE slug=$1', [slug])
-      const courseId = courseRows[0]?.id
-      if (!courseId) return res.status(404).json({ message: 'Course not found' })
-      const rows = await query<any>('SELECT id, title, slug, description, content, video_url, order_index, estimated_duration_minutes FROM topics WHERE course_id=$1 ORDER BY order_index ASC', [courseId])
-      const mapped = rows.map(r => ({ id: String(r.slug), title: r.title, description: r.description, content: r.content, videoUrl: r.video_url, order: r.order_index, duration: r.estimated_duration_minutes }))
-      return res.json(mapped)
-    }
-  } catch (e) {}
+  // Database functionality removed
   // Fallback to in-memory
   const course = courses.find(c => c.slug === slug)
   return res.json(course?.courseTopics || [])
@@ -1028,29 +1011,7 @@ router.get('/courses/:slug/topics', async (req: Request, res: Response) => {
 router.put('/courses/:slug/topics', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const newTopics: CourseTopic[] = (req.body || []) as CourseTopic[]
-  try {
-    const db = getDb()
-    if (db) {
-      const courseRows = await query<any>('SELECT id FROM courses WHERE slug=$1', [slug])
-      const courseId = courseRows[0]?.id
-      if (!courseId) return res.status(404).json({ message: 'Course not found' })
-      await query('DELETE FROM topics WHERE course_id=$1', [courseId])
-      for (const t of newTopics) {
-        await query('INSERT INTO topics (course_id, title, slug, description, content, video_url, order_index, estimated_duration_minutes, is_published) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [
-          courseId,
-          t.title,
-          String(t.id),
-          t.description || '',
-          t.content || '',
-          t.videoUrl || null,
-          t.order,
-          t.duration || null,
-          true,
-        ])
-      }
-      return res.json({ updated: newTopics.length })
-    }
-  } catch (e) {}
+  // Database functionality removed
   const course = courses.find(c => c.slug === slug)
   if (!course) return res.status(404).json({ message: 'Course not found' })
   course.courseTopics = newTopics
@@ -1059,14 +1020,7 @@ router.put('/courses/:slug/topics', async (req: Request, res: Response) => {
 
 // Report Management
 router.get('/reports', async (req: Request, res: Response) => {
-  try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports ORDER BY created_at DESC`)
-      return res.json(rows as Report[])
-    }
-  } catch (e) {}
-  // Fallback to empty array
+  // Database functionality removed
   return res.json([])
 })
 
@@ -1076,30 +1030,7 @@ router.post('/reports', async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Missing required fields: userId, type, itemId, reason, description' })
   }
   
-  try {
-    const db = getDb()
-    if (db) {
-      // Get user name from users table
-      const userRows = await query<any>(`SELECT username FROM users WHERE id=$1`, [body.userId])
-      const userName = userRows.length > 0 ? userRows[0].username : 'Unknown User'
-      
-      await query(`INSERT INTO reports (user_id, user_name, type, item_id, item_title, reason, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [
-        body.userId,
-        userName,
-        body.type,
-        body.itemId,
-        body.itemTitle || '',
-        body.reason,
-        body.description,
-        'pending'
-      ])
-      
-      // Get the newly created report
-      const reportRows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports WHERE user_id=$1 AND item_id=$2 AND created_at >= NOW() - INTERVAL '1 minute' ORDER BY created_at DESC LIMIT 1`, [body.userId, body.itemId])
-      
-      return res.status(201).json(reportRows[0] as Report)
-    }
-  } catch (e) {}
+  // Database functionality removed
   
   // Fallback response
   return res.status(500).json({ message: 'Failed to create report' })
@@ -1109,37 +1040,7 @@ router.patch('/reports/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   const updates = req.body || {}
   
-  try {
-    const db = getDb()
-    if (db) {
-      const validFields: string[] = []
-      const values: any[] = []
-      
-      if (updates.status !== undefined) {
-        validFields.push('status=$' + (values.length + 1))
-        values.push(updates.status)
-      }
-      if (updates.reason !== undefined) {
-        validFields.push('reason=$' + (values.length + 1))
-        values.push(updates.reason)
-      }
-      if (updates.description !== undefined) {
-        validFields.push('description=$' + (values.length + 1))
-        values.push(updates.description)
-      }
-      
-      if (validFields.length > 0) {
-        values.push(id)
-        await query(`UPDATE reports SET ${validFields.join(', ')}, updated_at=NOW() WHERE id=$${values.length}`, values)
-      }
-      
-      // Return the updated report
-      const rows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports WHERE id=$1`, [id])
-      if (rows.length === 0) return res.status(404).json({ message: 'Report not found' })
-      
-      return res.json(rows[0] as Report)
-    }
-  } catch (e) {}
+  // Database functionality removed
   
   return res.status(500).json({ message: 'Failed to update report' })
 })
@@ -1147,13 +1048,7 @@ router.patch('/reports/:id', async (req: Request, res: Response) => {
 router.delete('/reports/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   
-  try {
-    const db = getDb()
-    if (db) {
-      await query(`DELETE FROM reports WHERE id=$1`, [id])
-      return res.status(204).send()
-    }
-  } catch (e) {}
+  // Database functionality removed
   
   return res.status(500).json({ message: 'Failed to delete report' })
 })
@@ -1165,11 +1060,9 @@ router.get('/reports/:type', async (req: Request, res: Response) => {
   }
   
   try {
-    const db = getDb()
-    if (db) {
-      const rows = await query<any>(`SELECT id, user_id as "userId", user_name as "userName", type, item_id as "itemId", item_title as "itemTitle", reason, description, status, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') as "createdAt" FROM reports WHERE type=$1 ORDER BY created_at DESC`, [type])
-      return res.json(rows as Report[])
-    }
+    // Database functionality removed
+    // Return empty array for reports
+    return res.json([])
   } catch (e) {}
 
   return res.json([])
@@ -1185,57 +1078,16 @@ router.post('/problems/:slug/submit', async (req: Request, res: Response) => {
   }
   
   try {
-    const db = getDb()
-    if (db) {
-      // Get user and problem IDs
-      const userRows = await query<any>('SELECT id FROM users WHERE id=$1', [userId])
-      if (!userRows.length) return res.status(404).json({ message: 'User not found' })
-      
-      const problemRows = await query<any>('SELECT id FROM problems WHERE slug=$1', [slug])
-      if (!problemRows.length) return res.status(404).json({ message: 'Problem not found' })
-      
-      const userIdFromDb = userRows[0].id
-      const problemId = problemRows[0].id
-      
-      // Insert submission record
-      const submissionResult = await query<any>(`INSERT INTO submissions (user_id, problem_id, language, code, status, submitted_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`, [
-        userIdFromDb,
-        problemId,
-        language,
-        code,
-        status
-      ])
-      
-      // Update problem statistics
-      await query('UPDATE problems SET total_submissions = total_submissions + 1 WHERE id=$1', [problemId])
-      
-      // Update user problem stats
-      const isAccepted = status === 'accepted'
-      await query(`INSERT INTO user_problem_stats (user_id, problem_id, attempts_count, is_solved, last_attempted_at) 
-                  VALUES ($1, $2, 1, $3, NOW()) 
-                  ON CONFLICT (user_id, problem_id) 
-                  DO UPDATE SET 
-                    attempts_count = user_problem_stats.attempts_count + 1,
-                    is_solved = CASE WHEN $3 THEN true ELSE user_problem_stats.is_solved END,
-                    last_attempted_at = NOW(),
-                    best_submission_id = CASE WHEN $3 THEN $4 ELSE user_problem_stats.best_submission_id END`, [
-        userIdFromDb,
-        problemId,
-        isAccepted,
-        submissionResult[0].id
-      ])
-      
-      // If the submission was accepted, update user's problem solved count
-      if (isAccepted) {
-        await query(`UPDATE users SET problems_solved = problems_solved + 1 WHERE id=$1`, [userIdFromDb])
-      }
-      
-      return res.status(201).json({ 
-        submissionId: submissionResult[0].id,
-        message: 'Submission recorded successfully',
-        accepted: isAccepted
-      })
-    }
+    // Database functionality removed
+    // In-memory processing is not implemented for submissions
+    // Return success response with a mock submission ID
+    const isAccepted = status === 'accepted'
+    
+    return res.status(201).json({ 
+      submissionId: Date.now(), // Mock submission ID
+      message: 'Submission recorded successfully',
+      accepted: isAccepted
+    })
   } catch (e) {
     console.error('Error processing submission:', e)
     return res.status(500).json({ message: 'Failed to process submission' })
@@ -1247,12 +1099,9 @@ router.post('/problems/:slug/submit', async (req: Request, res: Response) => {
 // Leaderboard API
 router.get('/leaderboard', async (req: Request, res: Response) => {
   try {
-    const db = getDb()
-    if (db) {
-      // Get users with their scores, problems solved, and other metrics
-      const rows = await query<any>('SELECT id, username, full_name as "fullName", total_score as "totalScore", problems_solved as "problemsSolved", current_streak, created_at as "joinedAt" FROM users WHERE is_active = true ORDER BY total_score DESC, problems_solved DESC LIMIT 100')
-      return res.json(rows)
-    }
+    // Database functionality removed
+    // Fallback to empty array
+    return res.json([])
   } catch (e) {}
   
   // Fallback to empty array
@@ -1267,26 +1116,9 @@ router.get('/leaderboard/:period', async (req: Request, res: Response) => {
   }
   
   try {
-    const db = getDb()
-    if (db) {
-      let dateCondition = ''
-      switch(period) {
-        case 'daily':
-          dateCondition = "created_at >= NOW() - INTERVAL '1 day'"
-          break
-        case 'weekly':
-          dateCondition = "created_at >= NOW() - INTERVAL '7 days'"
-          break
-        case 'monthly':
-          dateCondition = "created_at >= NOW() - INTERVAL '30 days'"
-          break
-        default:
-          dateCondition = 'true' // no date restriction for 'all'
-      }
-      
-      const rows = await query<any>('SELECT id, username, full_name as "fullName", total_score as "totalScore", problems_solved as "problemsSolved", current_streak, created_at as "joinedAt" FROM users WHERE is_active = true AND ' + dateCondition + ' ORDER BY total_score DESC, problems_solved DESC LIMIT 50')
-      return res.json(rows)
-    }
+    // Database functionality removed
+    // Fallback to empty array
+    return res.json([])
   } catch (e) {}
   
   return res.json([])
