@@ -339,6 +339,7 @@ router.patch('/problems/:id', async (req: Request, res: Response) => {
       difficulty: updates.difficulty ?? problem.difficulty,
       isPublished: updates.isPublished ?? problem.isPublished,
     })
+        saveProblemsToFile()
   }
   // Database functionality removed
   if (!problem) return res.status(404).json({ message: 'Not found' })
@@ -367,6 +368,7 @@ router.patch('/problems/by-slug/:slug', async (req: Request, res: Response) => {
     difficulty: updates.difficulty ?? problem.difficulty,
     isPublished: updates.isPublished ?? problem.isPublished,
   })
+    saveProblemsToFile()
   return res.json(problem)
 })
 
