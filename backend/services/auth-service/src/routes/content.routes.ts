@@ -171,7 +171,8 @@ router.get('/courses/:id', async (req: Request, res: Response) => {
   return res.json(course)
 })
 
-// Get a single course by slug
+// 184
+
 router.get('/courses/:slug', async (req: Request, res: Response) => {
   const slug = String(req.params.slug)
   const course = courses.find(c => c.slug === slug)
@@ -217,6 +218,7 @@ router.patch('/courses/:id/publish', (req: Request, res: Response) => {
   if (!course) return res.status(404).json({ message: 'Not found' })
   course.isPublished = !course.isPublished
   res.json(course)
+    saveCoursesToFile()
 })
 
 router.patch('/courses/:id', async (req: Request, res: Response) => {
@@ -235,8 +237,10 @@ router.patch('/courses/:id', async (req: Request, res: Response) => {
     })
   }
   // Database functionality removed
+  upsaveCoursesToFile()
   if (!course) return res.status(404).json({ message: 'Not found' })
   return res.json(course)
+  
 })
 
 router.delete('/courses/:id', async (req: Request, res: Response) => {
@@ -263,6 +267,8 @@ router.patch('/courses/by-slug/:slug', async (req: Request, res: Response) => {
     thumbnail: updates.thumbnail ?? course.thumbnail,
     isPublished: updates.isPublished ?? course.isPublished,
   })
+    saveCoursesToFile()
+  
   return res.json(course)
 })
 
@@ -316,6 +322,8 @@ router.patch('/problems/:id/publish', (req: Request, res: Response) => {
   const problem = problems.find(p => p.id === id)
   if (!problem) return res.status(404).json({ message: 'Not found' })
   problem.isPublished = !problem.isPublished
+    saveProblemsToFile()  
+  return res.json(problem)
   return res.json(problem)
 })
 
