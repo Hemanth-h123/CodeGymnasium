@@ -217,8 +217,8 @@ router.patch('/courses/:id/publish', (req: Request, res: Response) => {
   const course = courses.find(c => c.id === id)
   if (!course) return res.status(404).json({ message: 'Not found' })
   course.isPublished = !course.isPublished
+  saveCoursesToFile()
   res.json(course)
-    saveCoursesToFile()
 })
 
 router.patch('/courses/:id', async (req: Request, res: Response) => {
@@ -237,11 +237,10 @@ router.patch('/courses/:id', async (req: Request, res: Response) => {
     })
   }
   // Database functionality removed
-  saveCoursesToFile()
   if (!course) return res.status(404).json({ message: 'Not found' })
-  return res.json(course)
-  
   saveCoursesToFile()
+  return res.json(course)
+})
 
 router.delete('/courses/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
@@ -592,7 +591,6 @@ router.get('/ensure-challenges-count', async (req: Request, res: Response) => {
   return res.status(500).json({ message: 'Failed to ensure challenges count' })
 })
 
-export default router
 // Topic progress
 router.post('/topics/:id/complete', async (req: Request, res: Response) => {
   const email = (req.body && req.body.email) || req.header('X-User-Email') || ''
@@ -1225,6 +1223,5 @@ router.get('/leaderboard/:period', async (req: Request, res: Response) => {
   
   return res.json([])
 })
-  })
 
 export default router
