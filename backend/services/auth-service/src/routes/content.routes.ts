@@ -1225,3 +1225,6 @@ router.get('/leaderboard/:period', async (req: Request, res: Response) => {
   
   return res.json([])
 })
+  })
+
+export default router
