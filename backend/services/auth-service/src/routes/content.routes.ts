@@ -237,11 +237,11 @@ router.patch('/courses/:id', async (req: Request, res: Response) => {
     })
   }
   // Database functionality removed
-  upsaveCoursesToFile()
+  saveCoursesToFile()
   if (!course) return res.status(404).json({ message: 'Not found' })
   return res.json(course)
   
-})
+  saveCoursesToFile()
 
 router.delete('/courses/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
